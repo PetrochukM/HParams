@@ -128,73 +128,6 @@ def _parse_configuration_helper(dict_, new_dict):
         new_dict = past_dict  # Reset dict
 
 
-def _check_configuration(dict_):
-    """ Check that the configuration ``dict_`` is valid.
-
-    Args:
-        dict_ (dict): Parsed dict to check
-
-    Raises:
-        (TypeError): If ``dict_`` does not refer to a configurable function.
-    """
-    return _check_configuration_helper(dict_, [], [])
-
-
-@lru_cache(maxsize=1)
-def _get_main_module_name():
-    """ Get `__main__` / `__mp_main__` module name """
-    from src.environment import ROOT_PATH  # Prevent circular dependency
-    file_name = sys.argv[0]
-
-    try:
-        file_name = str(Path(file_name).relative_to(ROOT_PATH))
-    except ValueError:
-        # `file_name` not relative to `ROOT_PATH`
-        pass
-
-    no_extension = file_name.split('.')[0]
-    return no_extension.replace('/', '.')
-
-
-def _get_module_name(func):
-    """ Get the name of a module as expressed by it's absolute path.
-
-    Args:
-        func (callable): Callable to be inspected.
-
-    Returns:
-        keys (list of str): Full path of the module.
-        print_name (str): Short name of the module for logging.
-    """
-    module_keys = inspect.getmodule(func).__name__.split('.')
-    if module_keys == ['__main__'] or module_keys == ['__mp_main__']:
-        module_keys = _get_main_module_name().split('.')
-    module_keys = [k for k in module_keys if k != '']
-    keys = module_keys + func.__qualname__.split('.')
-
-    if len(module_keys) > 0:
-        print_name = module_keys[-1] + '.' + func.__qualname__
-    else:
-        print_name = func.__qualname__
-
-    return keys, print_name
-
-
-def _is_possible_module(module_path):
-    """ Return True if valid module path without importing the module.
-
-    Args:
-        module_path (str)
-
-    Returns:
-        (bool)
-    """
-    try:
-        return importlib.util.find_spec(module_path) is not None
-    except (ModuleNotFoundError, AttributeError):
-        return False
-
-
 def _check_configuration_helper(dict_, keys, trace):
     """ Recursive helper of ``_check_configuration``.
 
@@ -298,6 +231,73 @@ def _check_configuration_helper(dict_, keys, trace):
     for key in dict_:
         # Recusively check every key in ``dict_``
         _check_configuration_helper(dict_[key], keys[:] + [key], trace[:])
+
+
+def _check_configuration(dict_):
+    """ Check that the configuration ``dict_`` is valid.
+
+    Args:
+        dict_ (dict): Parsed dict to check
+
+    Raises:
+        (TypeError): If ``dict_`` does not refer to a configurable function.
+    """
+    return _check_configuration_helper(dict_, [], [])
+
+
+@lru_cache(maxsize=1)
+def _get_main_module_name():
+    """ Get `__main__` / `__mp_main__` module name """
+    from src.environment import ROOT_PATH  # Prevent circular dependency
+    file_name = sys.argv[0]
+
+    try:
+        file_name = str(Path(file_name).relative_to(ROOT_PATH))
+    except ValueError:
+        # `file_name` not relative to `ROOT_PATH`
+        pass
+
+    no_extension = file_name.split('.')[0]
+    return no_extension.replace('/', '.')
+
+
+def _get_module_name(func):
+    """ Get the name of a module as expressed by it's absolute path.
+
+    Args:
+        func (callable): Callable to be inspected.
+
+    Returns:
+        keys (list of str): Full path of the module.
+        print_name (str): Short name of the module for logging.
+    """
+    module_keys = inspect.getmodule(func).__name__.split('.')
+    if module_keys == ['__main__'] or module_keys == ['__mp_main__']:
+        module_keys = _get_main_module_name().split('.')
+    module_keys = [k for k in module_keys if k != '']
+    keys = module_keys + func.__qualname__.split('.')
+
+    if len(module_keys) > 0:
+        print_name = module_keys[-1] + '.' + func.__qualname__
+    else:
+        print_name = func.__qualname__
+
+    return keys, print_name
+
+
+def _is_possible_module(module_path):
+    """ Return True if valid module path without importing the module.
+
+    Args:
+        module_path (str)
+
+    Returns:
+        (bool)
+    """
+    try:
+        return importlib.util.find_spec(module_path) is not None
+    except (ModuleNotFoundError, AttributeError):
+        return False
 
 
 def add_config(dict_):
