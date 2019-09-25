@@ -372,7 +372,7 @@ def add_config(dict_):
         >>>
         >>> # Configure `pprint` to use a `width` of `2`
         >>> pprint.pprint = configurable(pprint.pprint)
-        >>> add_config({'pprint.pprint': {'width': 2}})
+        >>> add_config({'pprint.pprint': HParams(width=2)})
         >>> pprint.pprint([[1, 2]])
         [[1,
           2]]
