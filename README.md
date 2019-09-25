@@ -42,11 +42,10 @@ Validate your hyperparameters like so:
 
 ```python3
 from hparams import HParam
-from typing import Union
 
 class Model():
     def __init__(hidden_size=HParam(int), dropout=HParam(float))
-        pass
+        ...
 ```
 
 `HParam(int)` is syntactic sugar for `Union[int, HParam] = HParam()`.
