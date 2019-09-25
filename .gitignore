@@ -71,23 +71,9 @@ target/
 # Vagrant
 .vagrant
 
-# Checkpoints
-logs/**
-
 # Coverage
-coverage/** 
+coverage/**
 cover/
-
-# Data
-data/**
-.data/**
-
-# Checkpoint files
-*.pt
-
-# Embeddings
-.pretrained_embeddings_cache/
-.word_vectors_cache/
 
 # Test Files
 .pytest_cache

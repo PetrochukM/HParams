@@ -24,3 +24,6 @@ yapf
 
 # Release to PyPi
 wheel
+
+# Runtime type checking
+typeguard

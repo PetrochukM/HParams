@@ -8,8 +8,8 @@ from setuptools import setup, find_packages
 
 def read(*names, **kwargs):
     with io.open(
-            os.path.join(os.path.dirname(__file__), *names), encoding=kwargs.get(
-                "encoding", "utf8")) as fp:
+            os.path.join(os.path.dirname(__file__), *names),
+            encoding=kwargs.get("encoding", "utf8")) as fp:
         return fp.read()
 
 
@@ -36,10 +36,10 @@ setup_info = dict(
     description='',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    license='BSD',
-    install_requires=[],
+    license='MIT',
+    install_requires=['typeguard'],
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
@@ -53,11 +53,11 @@ setup_info = dict(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    keywords='pytorch tensorflow hparams',
+    keywords='hyperparameters hparams configurable',
     python_requires='>=3.6',
 
     # Package info
-    packages=find_packages(exclude=['.vscode', 'build_tools', 'docs', 'tests']),
+    packages=find_packages(exclude=['tests']),
     zip_safe=True)
 
 setup(**setup_info)
