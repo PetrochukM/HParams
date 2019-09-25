@@ -1,5 +1,3 @@
-# HParams [Draft]
-
 <h3 align="center">Get your hyperparameters in a row.</h3>
 
 HParams is a library for machine learning hyperparameter management.
@@ -20,14 +18,14 @@ Make sure you have Python 3. You can then install `hparams` using `pip`:
 Or to install the latest code via:
 
     pip install git+https://github.com/PetrochukM/HParams.git
-# HParams
+
 ## Basics
 
 Add HParams to your project by following one of the common use cases:
 
 ### Set Defaults
 
-Configure PyTorch and Tensorflow defaults to match, like so:
+Configure PyTorch and Tensorflow defaults to match like so:
 
 ```python3
 from torch import nn
@@ -38,23 +36,24 @@ nn.modules.batchnorm._BatchNorm.__init__ = configurable(nn.modules.batchnorm._Ba
 add_config({ nn.modules.batchnorm._BatchNorm.__init__: HParams(momentum=0.01) })
 ```
 
-### Hyperparameter Typechecking
+### Validate
 
-Validate your hyperparameters, like so:
+Validate your hyperparameters like so:
 
 ```python3
 from hparams import HParam
+from typing import Union
 
 class Model():
-    def __init__(hidden_size=HParam(int), dropout=HParam(float))
-        ....
+    def __init__(hidden_size=HParam(int), dropout: Union[float, HParam] = HParam())
+        pass
 ```
 
-We use Python3 `typings` for typechecking.
+`HParam(int)` is syntactic sugar for `Union[int, HParam] = HParam()`.
 
-### Hyperparameter CLI
+### CLI
 
-Enable rapid command line experimentation, like so:
+Enable rapid command line experimentation like so:
 
 ```bash
 $ experiment.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
@@ -76,7 +75,7 @@ torch.optim.Adam()
 
 ### Config File(s)
 
-Extend your library to support multiple model configurations, like so:
+Extend your library to support multiple model configurations like so:
 
 ```python3
 import torch
