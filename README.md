@@ -1,5 +1,3 @@
-# HParams [Draft]
-
 <h3 align="center">Get your hyperparameters in a row.</h3>
 
 HParams is a library for machine learning hyperparameter management.
