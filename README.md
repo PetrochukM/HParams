@@ -45,7 +45,7 @@ from hparams import HParam
 from typing import Union
 
 class Model():
-    def __init__(hidden_size=HParam(int), dropout: Union[float, HParam] = HParam())
+    def __init__(hidden_size=HParam(int), dropout=HParam(float))
         pass
 ```
 
