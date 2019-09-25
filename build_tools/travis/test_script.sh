@@ -11,10 +11,6 @@ export PYTHONPATH=.
 
 python --version
 
-if [[ "$RUN_DOCS" == "true" ]]; then
-    make -C docs html
-fi
-
 if [[ "$RUN_FLAKE8" == "true" ]]; then
     flake8 hparams/
     flake8 tests/
