@@ -18,7 +18,7 @@ Make sure you have Python 3. You can then install `hparams` using `pip`:
 Or to install the latest code via:
 
     pip install git+https://github.com/PetrochukM/HParams.git
-# HParams
+
 ## Basics
 
 Add HParams to your project by following one of the common use cases:
