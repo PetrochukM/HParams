@@ -36,7 +36,7 @@ nn.modules.batchnorm._BatchNorm.__init__ = configurable(nn.modules.batchnorm._Ba
 add_config({ nn.modules.batchnorm._BatchNorm.__init__: HParams(momentum=0.01) })
 ```
 
-### Hyperparameter Typechecking
+### Validate
 
 Validate your hyperparameters, like so:
 
@@ -50,7 +50,7 @@ class Model():
 
 We use Python3 `typings` for typechecking.
 
-### Hyperparameter CLI
+### CLI
 
 Enable rapid command line experimentation, like so:
 
