@@ -17,11 +17,7 @@ if [[ "$RUN_FLAKE8" == "true" ]]; then
 fi
 
 run_tests() {
-    TEST_CMD="python -m pytest tests/ hparams/ --verbose --durations=20 --cov=hparams --doctest-modules"
-    if [[ "$RUN_SLOW" == "true" ]]; then
-        TEST_CMD="$TEST_CMD --runslow"
-    fi
-    $TEST_CMD
+    python -m pytest tests/ hparams/ --verbose --durations=20 --cov=hparams --doctest-modules
 }
 
 run_tests
