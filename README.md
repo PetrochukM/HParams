@@ -35,7 +35,7 @@ Notable Features:
 - Clear unambiguous errors and warnings for your benefit
 
 This library was developed from Michael Petrochuk's learnings as a deep learning engineer at Apple
-and the Allen Institute for Artificial Intelligence. Finally, this library is similar to but not
+and the Allen Institute for Artificial Intelligence. Finally, this is similar to but not
 inspired by AllenNLP's hyperparameter management system.
 
 ## Basics
