@@ -87,7 +87,7 @@ add_config(parsed)
 
 ### Track Hyperparameters
 
-Easily track your hyperparameters using tools like comet.ml
+Easily track your hyperparameters using tools like [Comet](comet.ml).
 
 ```
 from comet_ml import Experiment
