@@ -56,8 +56,7 @@ def train(batch_size=HParam(int)):
 add_config({ train: HParams(batch_size=32) })
 ```
 
-HParams supports optional configuration typechecking to help you find bugs. Also you can use
-HParams with `json` to support multiple model configurations!
+HParams supports optional configuration typechecking to help you find bugs.
 
 ### Set Defaults
 
