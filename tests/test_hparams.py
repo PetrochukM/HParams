@@ -568,13 +568,13 @@ def test_merge_arg_kwarg(logger_mock):
     # Prefer `args` over `other_kwargs`
     merged = _merge_args(parameters, ['a', 'abc'], {}, {'b': 'xyz'}, '', True)
     assert merged == (['a', 'abc'], {})
-    logger_mock.warning.assert_called_once()
+    assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # Prefer `kwargs` over `other_kwargs`
     merged = _merge_args(parameters, ['a'], {'b': 'abc'}, {'b': 'xyz'}, '', True)
     assert merged == (['a'], {'b': 'abc'})
-    logger_mock.warning.assert_called_once()
+    assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # Prefer `other_kwargs` over default argument
@@ -606,13 +606,13 @@ def test_merge_arg_variable(logger_mock):
 
     merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'a': 'xyz'}, '', True)
     assert merged == (['a', 'b', 'c'], {})
-    logger_mock.warning.assert_called_once()
+    assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # More arguments than parameters
     merged = _merge_args(parameters, ['a', 'b', 'c', 'd', 'e', 'g'], {}, {'a': 'xyz'}, '', True)
     assert merged == (['a', 'b', 'c', 'd', 'e', 'g'], {})
-    logger_mock.warning.assert_called_once()
+    assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
 
@@ -625,7 +625,7 @@ def test_merge_kwarg_variable(logger_mock):
 
     merged = _merge_args(parameters, ['a', 'b'], {}, {'b': 'xyz'}, '', True)
     assert merged == (['a', 'b'], {})
-    logger_mock.warning.assert_called_once()
+    assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, '', True)
@@ -657,7 +657,7 @@ def test_configurable__no_config(logger_mock):
         pass
 
     configured()
-    logger_mock.warning.assert_called_once()
+    assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # Test that the the warning is only called the first time.
