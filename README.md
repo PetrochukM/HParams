@@ -35,9 +35,7 @@ Notable Features:
 - Clear unambiguous errors and warnings for your benefit
 
 This library was developed from Michael Petrochuk's learnings as a deep learning engineer at Apple
-and the Allen Institute for Artificial Intelligence. Finally, this is similar to but not
-inspired by AllenNLP's hyperparameter management system.
-
+and the Allen Institute for Artificial Intelligence.
 ## Basics
 
 Add HParams to your project by following one of the common use cases:
