@@ -29,9 +29,14 @@ dependencies at runtime from a designated configuration file.
 
 Notable Features:
 
-- HParams is small requiring only one dependency
-- `@configurable` adds less than 1e-05 seconds of overhead
-- HParams supports Python's notorious `multiprocessing` module
+- Only one dependency
+- Little to no runtime overhead (< 1e-05 seconds) per configured function
+- Support for Python's notorious `multiprocessing` module
+- Clear unambiguous errors and warnings for your benefit
+
+This library was developed from Michael Petrochuk's learnings as a deep learning engineer at Apple
+and the Allen Institute for Artificial Intelligence. Finally, this library is similar to but not
+inspired by AllenNLP's hyperparameter management system.
 
 ## Basics
 
