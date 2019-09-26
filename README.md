@@ -93,7 +93,7 @@ add_config(parsed)
 
 Easily track your hyperparameters using tools like [Comet](comet.ml).
 
-```
+```python3
 from comet_ml import Experiment
 from hparams import get_config
 
@@ -105,7 +105,7 @@ experiment.log_parameters(get_config())
 
 Export a Python `functools.partial` to use in another process like so:
 
-```
+```python3
 from hparams import configurable, HParam
 
 @configurable
