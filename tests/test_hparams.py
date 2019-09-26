@@ -720,6 +720,29 @@ def test_configurable__unwrap():
     assert configured() == expected
 
 
+class __test__resolve_configuration__super_class:
+
+    def __init__(self):
+        pass
+
+
+class _test__resolve_configuration__super_class(__test__resolve_configuration__super_class):
+    pass
+
+
+def test__configurable__regression():
+    """ Test if `@configurable` fails with a none-overridden `__init__` function for a global class.
+
+    TODO: Support this use case. Curiously, this works for none-global classes though.
+    """
+
+    _test__resolve_configuration__super_class.__init__ = configurable(
+        _test__resolve_configuration__super_class.__init__)
+
+    with pytest.raises(TypeError):
+        add_config({_test__resolve_configuration__super_class.__init__: HParams()})
+
+
 def test_configurable__benchmark():
     """ Test if `@configurable` is within the ballpark of a native decorator in performance. """
 
