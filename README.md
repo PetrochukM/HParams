@@ -71,8 +71,8 @@ add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
 
 Enable rapid command line experimentation, for example:
 
-```bash
-$ file.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
+```console
+foo@bar:~$ file.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
 ```
 
 ```python3
