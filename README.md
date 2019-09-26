@@ -1,6 +1,6 @@
-<h3 align="center">Get your hyperparameters in a row.</h3>
+<h3 align="center">Stop messing around and organize your hyperparameters.</h3>
 
-HParams is a library for machine learning hyperparameter management.
+HParams is a configuration management solution for machine learning projects.
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
@@ -19,94 +19,99 @@ Or to install the latest code via:
 
     pip install git+https://github.com/PetrochukM/HParams.git
 
+## What is HParams?
+
+HParams is a configuration management solution for machine learning projects. With this you can
+externalize your hyparameters ensuring that they are extensible, accessible and maintainable.
+
+Technically speaking, HParams uses the `@configurable` decorator to inject your hyperparameter
+dependencies at runtime from a designated configuration file.
+
+Notable Features:
+
+- HParams is small requiring only one dependency
+- `@configurable` adds less than 1e-05 seconds of overhead
+- HParams supports Python's notorious `multiprocessing` module
+
 ## Basics
 
 Add HParams to your project by following one of the common use cases:
 
-### Set Defaults
+### Configure Training
 
-Configure PyTorch and Tensorflow defaults to match like so:
+Configure your training run like so:
 
 ```python3
-from torch import nn
+from hparams import configurable, add_config, HParams, HParam
+
+@configurable
+def train(batch_size=HParam(int)):
+    pass
+
+add_config({ train: HParams(batch_size=32) })
+```
+
+HParams supports optional configuration typechecking to help you find bugs. Also you can use
+HParams with `json` to support multiple model configurations!
+
+### Set Defaults
+
+Configure PyTorch and Tensorflow defaults to match, enabling reproducibility, like so:
+
+```python3
+from torch.nn import BatchNorm1d
 from hparams import configurable, add_config, HParams
 
 # NOTE: `momentum=0.01` to match Tensorflow defaults
-nn.modules.batchnorm._BatchNorm.__init__ = configurable(nn.modules.batchnorm._BatchNorm.__init__)
-add_config({ nn.modules.batchnorm._BatchNorm.__init__: HParams(momentum=0.01) })
+BatchNorm1d.__init__ = configurable(BatchNorm1d.__init__)
+add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
 ```
-
-### Validate
-
-Validate your hyperparameters like so:
-
-```python3
-from hparams import HParam
-
-class Model():
-    def __init__(hidden_size=HParam(int), dropout=HParam(float))
-        ...
-```
-
-`HParam(int)` is syntactic sugar for `Union[int, HParam] = HParam()`.
 
 ### CLI
 
-Enable rapid command line experimentation like so:
+Enable rapid command line experimentation, for example:
 
 ```bash
-$ experiment.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
+$ file.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
 ```
 
 ```python3
-# experiment.py
-import torch
 import sys
+from torch.optim import Adam
 from hparams import configurable, add_config, parse_hparam_args
 
-add_config(parse_hparam_args(sys.argv)) # Parse command line arguments
-
-torch.optim.Adam.__init__ = configurable(torch.optim.Adam.__init__)
-
-# Adam with defaults `lr=0.1` and  `betas=(0.999,0.99)`.
-torch.optim.Adam()
+Adam.__init__ = configurable(Adam.__init__)
+parsed = parse_hparam_args(sys.argv) # Parse command line arguments
+add_config(parsed)
 ```
 
-### Config File(s)
+### Track Hyperparameters
 
-Extend your library to support multiple model configurations like so:
+Easily track your hyperparameters using tools like comet.ml
 
-```python3
-import torch
-import random
-from hparams import configurable, add_config, HParams
+```
+from comet_ml import Experiment
+from hparams import get_config
 
-torch.optim.Adam.__init__ = configurable(torch.optim.Adam.__init__)
-random.seed = configurable(random.seed)
-
-add_config({
-    # Set the learning rate
-    torch.optim.adam.Adam.__init__: HParams(lr=10**-3),
-
-    # Set the random seed
-    random.seed: HParams(a=123),
-
-    # Set other source code hyperparameters
-    'main': {
-        'Model.__init__': HParams(
-            hidden_size=256,
-            dropout=0.1,
-        ),
-        'Trainer.__init__': HParams(
-            batch_size=32,
-            gradient_clipping=0.25,
-            optimizer=torch.optim.Adam,
-        )
-    }
-})
+experiment = Experiment()
+experiment.log_parameters(get_config())
 ```
 
-This example assumes that you have a `Model` and `Trainer` class defined in `main.py`.
+### Multiprocessing: Partial Support
+
+Export a Python `functools.partial` to use in another process like so:
+
+```
+from hparams import configurable, HParam
+
+@configurable
+def func(hparam=HParam(int)):
+    pass
+
+partial = func.get_configured_partial()
+```
+
+With this approach, you don't have to transfer the entire global state to the new process.
 
 ## Contributing
 
