@@ -1,6 +1,6 @@
 <h3 align="center">Stop messing around and organize your hyperparameters.</h3>
 
-HParams is a configuration management solution for machine learning projects.
+HParams is a configuration management solution for machine learning projects. With this you can externalize your hyparameters ensuring that they are extensible, accessible and maintainable.
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
