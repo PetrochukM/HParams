@@ -126,7 +126,7 @@ test your changes to hparams.
 ## Authors
 
 This library was initially developed by Michael Petrochuk's from his learnings as a deep learning engineer at Apple
-and the Allen Institute for Artificial Intelligence. [Chloe Yeo](http://www.yeochloe.com/) helped did the logo design.
+and the Allen Institute for Artificial Intelligence. [Chloe Yeo](http://www.yeochloe.com/) did the logo design.
 
 ## Citing
 
