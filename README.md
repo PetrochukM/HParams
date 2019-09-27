@@ -2,6 +2,9 @@
 
 HParams is a configuration management solution for machine learning projects. With this you can externalize your hyparameters ensuring that they are extensible, accessible and maintainable.
 
+Technically speaking, HParams uses the `@configurable` decorator to inject your hyperparameter
+dependencies at runtime from a designated configuration file.
+
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
 [![Downloads](http://pepy.tech/badge/hparams)](http://pepy.tech/project/hparams)
@@ -19,23 +22,7 @@ Install the latest code via:
 
     pip install git+https://github.com/PetrochukM/HParams.git
 
-## What is HParams?
 
-HParams is a configuration management solution for machine learning projects. With this you can
-externalize your hyparameters ensuring that they are extensible, accessible and maintainable.
-
-Technically speaking, HParams uses the `@configurable` decorator to inject your hyperparameter
-dependencies at runtime from a designated configuration file.
-
-Notable Features:
-
-- Only one dependency
-- Little to no runtime overhead (< 1e-05 seconds) per configured function
-- Support for Python's notorious `multiprocessing` module
-- Clear unambiguous errors and warnings for your benefit
-
-This library was developed from Michael Petrochuk's learnings as a deep learning engineer at Apple
-and the Allen Institute for Artificial Intelligence.
 ## Basics
 
 Add HParams to your project by following one of the common use cases:
@@ -115,6 +102,15 @@ partial = func.get_configured_partial()
 
 With this approach, you don't have to transfer the entire global state to the new process.
 
+## Notable Features
+
+HParams has:
+
+- Only one dependency
+- Little to no runtime overhead (< 1e-05 seconds) per configured function
+- Support for Python's notorious `multiprocessing` module
+- Clear unambiguous errors and warnings for your benefit
+
 ## Contributing
 
 We've released HParams because a lack of hyperparameter management solutions. We hope that
@@ -129,8 +125,8 @@ test your changes to hparams.
 
 ## Authors
 
-* [Michael Petrochuk](https://github.com/PetrochukM/) — Developer
-* [Chloe Yeo](http://www.yeochloe.com/) — Logo Design
+This library was initially developed by Michael Petrochuk's from his learnings as a deep learning engineer at Apple
+and the Allen Institute for Artificial Intelligence. [Chloe Yeo](http://www.yeochloe.com/) helped did the logo design.
 
 ## Citing
 
