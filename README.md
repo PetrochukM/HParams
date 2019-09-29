@@ -1,20 +1,25 @@
-<h3 align="center">Clean up your code and organize your hyperparameters</h3>
+<p align="center"><img width="50%" src="hparams-05.svg" /></p>
 
-HParams is a configuration management solution for machine learning projects. With this you can
-externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
+<h3 align="center">Extensible and Fault-Taulerant Hyperparameter Management Module</h3>
 
-Notables:
+HParams is a thoughtful approach to configuration management for machine learning projects.  
+With HParams you can, externalize your hyperparameters into the configuration file(s).  
+In so, allowing you to reproduce experiments, iterate quickly, and reduce errors.
 
-   - 68 tests and 100% test coverage to cover most use cases.
-   - Little to no runtime overhead (< 1e-05 seconds) per configured function.
-   - Battle tested over 2 years with two ML teams.
-   - Requires only one dependency.
+**Features:**
+
+   - Approachable and easy-to-use API
+   - Battle-tested over 2 years with two ML teams
+   - Fast with little to no runtime overhead (< 1e-05 seconds) per configured function
+   - Robust to most use cases with 100% test coverage and 71 tests
+   - Lightweight with only one dependency
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
 [![Downloads](http://pepy.tech/badge/hparams)](http://pepy.tech/project/hparams)
 [![Build Status](https://img.shields.io/travis/PetrochukM/HParams/master.svg?style=flat-square)](https://travis-ci.org/PetrochukM/HParams)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Twitter: PetrochukM](https://img.shields.io/twitter/follow/MPetrochuk.svg?style=social)](https://twitter.com/MPetrochuk)
 
 _Logo by [Chloe Yeo](http://www.yeochloe.com/)_
 
@@ -30,14 +35,13 @@ Install the latest code via:
 
 ## Examples 🤔
 
-Add HParams to your project by following one of the common use cases:
+Add HParams to your project by following one of these common use cases:
 
 ### Configure Training
 
-Configure your training run like so:
+Configure your training run, like so:
 
 ```python
-# main.py
 from hparams import configurable, add_config, HParams, HParam
 from typing import Union
 
@@ -57,12 +61,12 @@ add_config({ 'main': {
 ```
 
 HParams supports optional configuration typechecking to help you find bugs. To ensure correctness,
-this throws errors or warnings if a hyperparameter is missing a configuration. Finally, the
+it throws errors or warnings if a hyperparameter is missing a configuration. Finally, the
 decorator adds little to no runtime overhead (< 1e-05 seconds) per function.
 
 ### Set Defaults
 
-Configure PyTorch and Tensorflow defaults to match globally, like so:
+Configure PyTorch and Tensorflow defaults to match globally via:
 
 ```python
 from torch.nn import BatchNorm1d
@@ -73,25 +77,25 @@ BatchNorm1d.__init__ = configurable(BatchNorm1d.__init__)
 add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
 ```
 
-Configure printer formatting globally, like so:
+Configure your random seed globally, like so:
 
-```pycon
->>> import pprint
->>> pprint.pprint([[1, 2]])
-[[1, 2]]
->>>
->>> # Configure `pprint` to use a `width` of `2`
->>> pprint.pprint = configurable(pprint.pprint)
->>> add_config({'pprint.pprint': HParams(width=2)})
->>>
->>> pprint.pprint([[1, 2]]) # `pprint` with `width` of `2`
-[[1,
-  2]]
+```python
+# config.py
+import random
+from hparams import configurable, add_config, HParams
+
+random.seed = configurable(random.seed)
+add_config({'random.seed': HParams(a=123)})
+```
+
+```python
+# main.py
+random.seed()
 ```
 
 ### CLI
 
-Enable rapid command line experimentation, for example:
+Experiment with hyperparameters through your command line, for example:
 
 ```console
 foo@bar:~$ file.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
@@ -103,8 +107,27 @@ from torch.optim import Adam
 from hparams import configurable, add_config, parse_hparam_args
 
 Adam.__init__ = configurable(Adam.__init__)
-parsed = parse_hparam_args(sys.argv) # Parse command line arguments
+parsed = parse_hparam_args(sys.argv[1:])  # Parse command line arguments
 add_config(parsed)
+```
+
+### Hyperparameter optimization
+
+Hyperparameter optimization is easy to-do, check this out:
+
+```python
+import itertools
+from torch.optim import Adam
+from hparams import configurable, add_config, HParams
+
+Adam.__init__ = configurable(Adam.__init__)
+
+def train():  # Train the model and return the loss.
+    pass
+    
+for betas in itertools.product([0.999, 0.99, 0.9], [0.999, 0.99, 0.9]):
+    add_config({Adam.__init__: HParams(betas=betas)})  # Grid search over the `betas`
+    train()
 ```
 
 ### Track Hyperparameters
@@ -121,13 +144,13 @@ experiment.log_parameters(get_config())
 
 ### Multiprocessing: Partial Support
 
-Export a Python `functools.partial` to use in another process like so:
+Export a Python `functools.partial` to use in another process, like so:
 
 ```python
 from hparams import configurable, HParam
 
 @configurable
-def func(hparam=HParam(int)):
+def func(hparam=HParam()):
     pass
 
 partial = func.get_configured_partial()
@@ -154,8 +177,8 @@ test your changes to hparams.
 
 ## Authors
 
-This library was initially developed by Michael Petrochuk's from his learnings as a deep learning engineer at Apple
-and the Allen Institute for Artificial Intelligence. [Chloe Yeo](http://www.yeochloe.com/) did the logo design.
+* [Michael Petrochuk](https://github.com/PetrochukM/) — Developer
+* [Chloe Yeo](http://www.yeochloe.com/) — Logo Design
 
 ## Citing
 
