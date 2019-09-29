@@ -3,8 +3,12 @@
 HParams is a configuration management solution for machine learning projects. With this you can
 externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
 
-Technically, HParams uses the `@configurable` decorator to inject your hyperparameter
-dependencies at runtime from a global configuration.
+Notables:
+
+   - 68 tests and 100% test coverage to cover most use cases.
+   - Little to no runtime overhead (< 1e-05 seconds) per configured function.
+   - Battle tested over 2 years with two ML teams.
+   - Requires only one dependency.
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
