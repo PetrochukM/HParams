@@ -3,6 +3,9 @@
 HParams is a configuration management solution for machine learning projects. With this you can
 externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
 
+Technically, HParams uses the `@configurable` decorator to inject your hyperparameter
+dependencies at runtime from a global configuration.
+
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
 [![Downloads](http://pepy.tech/badge/hparams)](http://pepy.tech/project/hparams)
@@ -40,8 +43,9 @@ def train(batch_size=HParam(int)):
 add_config({ 'main.train': HParams(batch_size=32) })
 ```
 
-HParams supports optional configuration typechecking to help you find bugs. To ensure correctness, this
-throws errors or warnings if a hyperparameter is missing a configuration.  
+HParams supports optional configuration typechecking to help you find bugs. To ensure correctness,
+this throws errors or warnings if a hyperparameter is missing a configuration. Finally, the
+decorator adds little to no runtime overhead (< 1e-05 seconds) per function.
 
 ### Set Defaults
 
@@ -116,8 +120,8 @@ def func(hparam=HParam(int)):
 partial = func.get_configured_partial()
 ```
 
-With this approach, you don't have to transfer the global state to the new process. To transfer the global state, you'll want to use
-`get_config` and `add_config`. 
+With this approach, you don't have to transfer the global state to the new process. To transfer the
+global state, you'll want to use `get_config` and `add_config`.
 
 ## Docs 📖
 
