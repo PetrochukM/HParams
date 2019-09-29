@@ -21,7 +21,7 @@ Install the latest code via:
 
     pip install git+https://github.com/PetrochukM/HParams.git
 
-## Examples 🖥
+## Examples 🤔
 
 Add HParams to your project by following one of the common use cases:
 
