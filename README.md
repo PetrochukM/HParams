@@ -1,6 +1,6 @@
-<h3 align="center">Stop messing around and organize your hyperparameters.</h3>
+<h3 align="center">Clean up your code and organize your hyperparameters today.</h3>
 
-HParams is a configuration management solution for machine learning projects. With this you can externalize your hyparameters ensuring that they are extensible, accessible and maintainable.
+HParams is a configuration management solution for machine learning projects. With this you can externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
 
 Technically speaking, HParams uses the `@configurable` decorator to inject your hyperparameter
 dependencies at runtime from a designated configuration file.
