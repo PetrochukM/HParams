@@ -43,7 +43,7 @@ HParams supports optional configuration typechecking to help you find bugs.
 
 ### Set Defaults
 
-Configure PyTorch and Tensorflow defaults to match globally, enabling reproducibility, like so:
+Configure PyTorch and Tensorflow defaults to match globally, like so:
 
 ```python
 from torch.nn import BatchNorm1d
@@ -54,7 +54,7 @@ BatchNorm1d.__init__ = configurable(BatchNorm1d.__init__)
 add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
 ```
 
-Configure a printer formatting globally, like so:
+Configure printer formatting globally, like so:
 
 ```pycon
 >>> import pprint
@@ -64,7 +64,8 @@ Configure a printer formatting globally, like so:
 >>> # Configure `pprint` to use a `width` of `2`
 >>> pprint.pprint = configurable(pprint.pprint)
 >>> add_config({'pprint.pprint': HParams(width=2)})
->>> pprint.pprint([[1, 2]])
+>>>
+>>> pprint.pprint([[1, 2]]) # `pprint` with `width` of `2`
 [[1,
   2]]
 ```
@@ -113,7 +114,8 @@ def func(hparam=HParam(int)):
 partial = func.get_configured_partial()
 ```
 
-With this approach, you don't have to transfer the entire global state to the new process.
+With this approach, you don't have to transfer the global state to the new process. To transfer the global state, you'll want to use
+`get_config` and `add_config`. 
 
 ## Docs 📖
 
@@ -144,7 +146,7 @@ cite it:
 ```
 @misc{hparams,
   author = {Petrochuk, Michael},
-  title = {HParams: Hyperparameter management},
+  title = {HParams: Hyperparameter management solution for machine learning},
   year = {2019},
   publisher = {GitHub},
   journal = {GitHub repository},
