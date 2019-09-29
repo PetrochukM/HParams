@@ -1,9 +1,8 @@
-<h3 align="center">Clean up your code and organize your hyperparameters today.</h3>
+<h3 align="center">Clean up your code and organize your hyperparameters</h3>
 
-HParams is a configuration management solution for machine learning projects. With this you can externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
-
-Technically speaking, HParams uses the `@configurable` decorator to inject your hyperparameter
-dependencies at runtime from a designated configuration file.
+HParams is a configuration management solution for machine learning projects. With this you can
+externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
+It’s open-source software, released under the MIT license.
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
@@ -22,8 +21,7 @@ Install the latest code via:
 
     pip install git+https://github.com/PetrochukM/HParams.git
 
-
-## Basics
+## Examples
 
 Add HParams to your project by following one of the common use cases:
 
@@ -31,7 +29,7 @@ Add HParams to your project by following one of the common use cases:
 
 Configure your training run like so:
 
-```python3
+```python
 from hparams import configurable, add_config, HParams, HParam
 
 @configurable
@@ -45,15 +43,30 @@ HParams supports optional configuration typechecking to help you find bugs.
 
 ### Set Defaults
 
-Configure PyTorch and Tensorflow defaults to match, enabling reproducibility, like so:
+Configure PyTorch and Tensorflow defaults to match globally, enabling reproducibility, like so:
 
-```python3
+```python
 from torch.nn import BatchNorm1d
 from hparams import configurable, add_config, HParams
 
 # NOTE: `momentum=0.01` to match Tensorflow defaults
 BatchNorm1d.__init__ = configurable(BatchNorm1d.__init__)
 add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
+```
+
+Configure a printer formatting globally, like so:
+
+```pycon
+>>> import pprint
+>>> pprint.pprint([[1, 2]])
+[[1, 2]]
+>>>
+>>> # Configure `pprint` to use a `width` of `2`
+>>> pprint.pprint = configurable(pprint.pprint)
+>>> add_config({'pprint.pprint': HParams(width=2)})
+>>> pprint.pprint([[1, 2]])
+[[1,
+  2]]
 ```
 
 ### CLI
@@ -64,7 +77,7 @@ Enable rapid command line experimentation, for example:
 foo@bar:~$ file.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
 ```
 
-```python3
+```python
 import sys
 from torch.optim import Adam
 from hparams import configurable, add_config, parse_hparam_args
@@ -78,7 +91,7 @@ add_config(parsed)
 
 Easily track your hyperparameters using tools like [Comet](comet.ml).
 
-```python3
+```python
 from comet_ml import Experiment
 from hparams import get_config
 
@@ -90,7 +103,7 @@ experiment.log_parameters(get_config())
 
 Export a Python `functools.partial` to use in another process like so:
 
-```python3
+```python
 from hparams import configurable, HParam
 
 @configurable
@@ -102,14 +115,9 @@ partial = func.get_configured_partial()
 
 With this approach, you don't have to transfer the entire global state to the new process.
 
-## Notable Features
+## Docs 📖
 
-HParams has:
-
-- Only one dependency
-- Little to no runtime overhead (< 1e-05 seconds) per configured function
-- Support for Python's notorious `multiprocessing` module
-- Clear unambiguous errors and warnings for your benefit
+The complete documentation for HParams is available [here](./DOCS.md).
 
 ## Contributing
 
