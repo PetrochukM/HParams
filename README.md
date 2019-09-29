@@ -2,12 +2,12 @@
 
 HParams is a configuration management solution for machine learning projects. With this you can
 externalize your hyperparameters ensuring that they are extensible, accessible, and maintainable.
-It’s open-source software, released under the MIT license.
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
 [![Downloads](http://pepy.tech/badge/hparams)](http://pepy.tech/project/hparams)
 [![Build Status](https://img.shields.io/travis/PetrochukM/HParams/master.svg?style=flat-square)](https://travis-ci.org/PetrochukM/HParams)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 _Logo by [Chloe Yeo](http://www.yeochloe.com/)_
 
