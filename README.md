@@ -1,4 +1,4 @@
-<p align="center"><img width="50%" src="hparams-06.svg" /></p>
+<p align="center"><img width="50%" src="hparams-05.svg" /></p>
 
 <h3 align="center">Extensible and Fault-Tolerant Hyperparameter Management</h3>
 
