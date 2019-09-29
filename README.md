@@ -147,7 +147,7 @@ cite it:
 ```
 @misc{hparams,
   author = {Petrochuk, Michael},
-  title = {HParams: Hyperparameter management solution for machine learning},
+  title = {HParams: Hyperparameter management solution},
   year = {2019},
   publisher = {GitHub},
   journal = {GitHub repository},
