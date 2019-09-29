@@ -9,7 +9,7 @@ you to reproduce experiments, iterate quickly, and reduce errors.
 **Features:**
 
    - Approachable and easy-to-use API
-   - Battle-tested over 2 years with two ML teams
+   - Battle-tested over two years
    - Fast with little to no runtime overhead (< 1e-05 seconds) per configured function
    - Robust to most use cases with 100% test coverage and 71 tests
    - Lightweight with only one dependency
