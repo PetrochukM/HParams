@@ -30,13 +30,21 @@ Add HParams to your project by following one of the common use cases:
 Configure your training run like so:
 
 ```python
-from hparams import configurable, add_config, HParams, HParam
+# main.py
+from hparams import configurable, HParam
 
 @configurable
 def train(batch_size=HParam(int)):
     pass
+```
 
-add_config({ train: HParams(batch_size=32) })
+```python
+# hparams.py
+from hparams import add_config, HParams
+
+add_config({ 
+    'main.train': HParams(batch_size=32),
+})
 ```
 
 HParams supports optional configuration typechecking to help you find bugs.
