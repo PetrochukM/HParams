@@ -1,10 +1,10 @@
-<p align="center"><img width="50%" src="hparams-05.svg" /></p>
+<p align="center"><img width="50%" src="hparams-06.svg" /></p>
 
-<h3 align="center">Extensible and Fault-Tolerant Hyperparameter Management Module</h3>
+<h3 align="center">Extensible and Fault-Tolerant Hyperparameter Management</h3>
 
 HParams is a thoughtful approach to configuration management for machine learning projects. It
-enables you to externalize your hyperparameters into a configuration file. In doing so, it allows
-you to reproduce experiments, iterate quickly, and reduce errors.
+enables you to externalize your hyperparameters into a configuration file. In doing so, you can 
+reproduce experiments, iterate quickly, and reduce errors.
 
 **Features:**
 
