@@ -13,19 +13,18 @@ runtime overhead (< 1e-05 seconds) per function.
 
 Warnings:
 
-  - `logging.warning` if the function has not been configured.
-  - `logging.warning` if the function configuration will be overridden by arguments passed to the
-    function.
+  - Runs `logging.warning` if the function has not been configured.
+  - Runs `logging.warning` if the function configuration will be overridden by arguments passed to the
+    function. 
 
 Raises:
 
-  - `TypeError` if a keyword argument defaulted to `HParam` for the decorated function's is not
-    configured. Typechecking is only run during `add_config` for efficiency.
-
+  - `TypeError` if a keyword argument defaulted to `HParam` for the decorated function is not
+    configured. Typechecking is only run during `add_config` for performance.
 
 Side-effects:
 
-  - Adds `get_configured_partial` to the function's attributes. This function returns a partial
+  - Adds `get_configured_partial` to the function's attributes. `get_configured_partial` returns a partial
     that's configured.
 
 Returns:
@@ -44,31 +43,6 @@ def train(batch_size=HParam(int)):
 add_config({ train: HParams(batch_size=32) })
 ```
 
-### HParams
-
-This is a subclass of `dict`. It is defined simply, like so:
-
-```
-class HParams(dict):
-    pass
-```
-
-This class is required by `add_config` to parse the configuration.
-
-### HParam
-
-This is a place-holder object indicating that a parameter should be configured.
-
-Args:
-
-  - type_ (typing, optional): The expected type of the hyperparameter.
-
-Raises:
-
-  - `ValueError` if this object is used to execute anything. This object should be overridden by
-    a hyperparameter during runtime.
-
-
 ### add_config
 
 Add a configuration to the global configuration.
@@ -76,7 +50,7 @@ Add a configuration to the global configuration.
 Args:
 
   - config (dict): A nested dictionary such that each key is a `str`, module, or `callable` and
-      each value is either a `dict` or an `HParams`.
+      each value is either a `dict` or an `HParams` object.
 
 Side-effects:
 
@@ -95,7 +69,7 @@ Raises:
 
 Example:
 
-```
+```python
 # main.py
 from hparams import configurable, add_config, HParams, HParam
 
@@ -128,8 +102,11 @@ add_config({
 
 Get the current global configuration.
 
-It'd be an anti-pattern to use this value to set the configuration and doing so will introduce
-unnecessary coupling / complexity.
+Anti-patterns:
+
+    - Using the return value of this function to set the configuration with `add_config`. 
+      That will introduce unnecessary coupling and complexity that this module is designed
+      to avoid.
 
 Returns:
 
@@ -137,11 +114,11 @@ Returns:
 
 ### clear_config
 
-Clear the current global configuration
+Clear the current global configuration.
 
 Side-effects:
 
-    - The configuration is reset to it's initial state.
+    - The global configuration is reset to it's initial state.
 
 ### log_config
 
@@ -154,7 +131,7 @@ that is compatible with `add_config`.
 
 Args:
 
-    - args (`list`): List of strings to parse.
+    - args (`list`): List of `str` to parse.
 
 Returns:
 
@@ -171,3 +148,28 @@ Adam.__init__ = configurable(Adam.__init__)
 parsed = parse_hparam_args(sys.argv) # Parse command line arguments
 add_config(parsed)
 ```
+
+### HParams
+
+This is a subclass of `dict`. It is defined simply, like so:
+
+```python
+class HParams(dict):
+    pass
+```
+
+This class is required by `add_config` to parse the configuration.
+
+### HParam
+
+This is a place-holder object indicating that a parameter should be configured.
+
+Args:
+
+  - type_ (typing, optional): The expected type of the hyperparameter.
+
+Raises:
+
+  - `ValueError` if this object is used to execute anything. This object should be overridden by
+    a hyperparameter during runtime.
+ 
