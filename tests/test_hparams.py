@@ -72,7 +72,7 @@ def test_hparam():
 
 def test__get_function_signature():
     assert _get_function_signature(
-        test__get_function_signature) == 'tests/test_hparams.py#test__get_function_signature'
+        test__get_function_signature) == 'tests.test_hparams.test__get_function_signature'
 
 
 def test__get_function_path__module():
@@ -517,43 +517,49 @@ def test_merge_configs():
 
 
 def test_parse_hparam_args__decimal():
-    hparam_args = ['--foo', '0.01']
-    assert parse_hparam_args(hparam_args) == {'foo': 0.01}
+    hparam_args = ['--foo', 'HParams(boo=0.01)']
+    assert parse_hparam_args(hparam_args) == {'foo': HParams(boo=0.01)}
 
 
 def test_parse_hparam_args__string():
-    hparam_args = ['--foo', '"WaveNet"']
-    assert parse_hparam_args(hparam_args) == {'foo': 'WaveNet'}
+    hparam_args = ['--foo', 'HParams(boo="WaveNet")']
+    assert parse_hparam_args(hparam_args) == {'foo': HParams(boo='WaveNet')}
 
 
 def test_parse_hparam_args__equals():
-    hparam_args = ['--foo=1']
-    assert parse_hparam_args(hparam_args) == {'foo': 1}
+    hparam_args = ['--foo=HParams(boo=1)']
+    assert parse_hparam_args(hparam_args) == {'foo': HParams(boo=1)}
 
 
 def test_parse_hparam_args__nesting():
-    hparam_args = ['--moo.foo', '1']
-    assert parse_hparam_args(hparam_args) == {'moo.foo': 1}
+    hparam_args = ['--moo.foo', 'HParams(boo=1)']
+    assert parse_hparam_args(hparam_args) == {'moo.foo': HParams(boo=1)}
 
 
 def test_parse_hparam_args__exponent():
-    hparam_args = ['--foo', '10**-6']
-    assert parse_hparam_args(hparam_args) == {'foo': 10**-6}
+    hparam_args = ['--foo', 'HParams(boo=10**-6)']
+    assert parse_hparam_args(hparam_args) == {'foo': HParams(boo=10**-6)}
 
 
 def test_parse_hparam_args__list():
-    hparam_args = ['--foo', '[1,2]']
-    assert parse_hparam_args(hparam_args) == {'foo': [1, 2]}
+    hparam_args = ['--foo', 'HParams(boo=[1,2])']
+    assert parse_hparam_args(hparam_args) == {'foo': HParams(boo=[1, 2])}
 
 
 def test_parse_hparam_args__single_flag():
-    hparam_args = ['-foo', '10**-6']
+    hparam_args = ['-foo', 'HParams(boo=10**-6)']
     with pytest.raises(ValueError):
         parse_hparam_args(hparam_args)
 
 
 def test_parse_hparam_args__no_value():
     hparam_args = ['--foo']
+    with pytest.raises(ValueError):
+        parse_hparam_args(hparam_args)
+
+
+def test_parse_hparam_args__no_hparams():
+    hparam_args = ['--foo', '0.01']
     with pytest.raises(ValueError):
         parse_hparam_args(hparam_args)
 

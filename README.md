@@ -35,12 +35,21 @@ Configure your training run like so:
 ```python
 # main.py
 from hparams import configurable, add_config, HParams, HParam
+from typing import Union
 
 @configurable
 def train(batch_size=HParam(int)):
     pass
 
-add_config({ 'main.train': HParams(batch_size=32) })
+class Model():
+    def __init__(hidden_size: Union[int, HParam] = HParam(),
+                 dropout: Union[float, HParam] = HParam()):
+          pass
+
+add_config({ 'main': {
+  'train': HParams(batch_size=32),
+  'Model.__init__': HParams(hidden_size=1024, dropout=0.25),
+}})
 ```
 
 HParams supports optional configuration typechecking to help you find bugs. To ensure correctness,

@@ -14,30 +14,7 @@ import sys
 from typeguard import check_type
 
 logger = logging.getLogger(__name__)
-pretty_printer = pprint.PrettyPrinter(indent=4)
-
-# MARKETING IDEAS:
-# - Support typing
-# - Validates and ensures that hyperparameters are run
-# - Ensures hyperparameters are explict, accessible, loggable, and trackable.
-# - Ensures hyperparameters are easy to find
-# - Allows for multiple hyperparameter configurations
-# - Integrates with ArgParser
-# - Allows you to redefined the defaults in third-party libraries
-# - Works in a distributed environment
-# - Flexible (i.e. you don't have to use all it's features like HParam or typings)
-# - It only has one dependency
-
-# TODO: Add to README about how configs are overriden.
-# TODO: Add to README a comet.ml usecase
-# TODO: Add to README benchmarks (this library shouldn't much slower than the wraps decorator)
-# TODO: Test the WellSaid repository with the distributed issues, third party issues, __main__
-# issues, relative import issues. We removed a couple critical things that may cause problems
-# like main module case handling.
-# TODO: Double check if the various errors are readable and helpful.
-# TODO: Test `configurable` and `_merge_args`. They haven't changed much though.
-# TODO: Finish `parse_hparam_args` rewrite to handle cases with multiple spaces like lists or
-# multiple equals signs.
+pretty_printer = pprint.PrettyPrinter()
 
 
 class HParams(dict):
@@ -56,7 +33,7 @@ class HParam():
     and avoid decorators all together. This will require some work with AST; unfortunately.
 
     Args:
-        type_ (typing): The HParam type.
+        type_ (typing, optional): The HParam type.
     """
 
     def __init__(self, type_=Any):
@@ -115,7 +92,7 @@ def _get_function_signature(func):
                     relative_filename = new_filename
             except ValueError:
                 pass
-        return relative_filename + '#' + func.__qualname__
+        return relative_filename.replace('/', '.')[:-3] + '.' + func.__qualname__
     except TypeError:
         return '#' + func.__qualname__
 
@@ -170,14 +147,14 @@ def _function_has_keyword_parameters(func, kwargs):
                     isinstance(parameters[kwarg].default, HParam)):
                 check_type(kwarg, kwargs[kwarg], parameters[kwarg].default.type)
         except TypeError:
-            raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`' %
+            raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
                             (_get_function_print_name(func), kwarg, parameters[kwarg].default.type))
 
         try:
             if kwarg in type_hints:
                 check_type(kwarg, kwargs[kwarg], type_hints[kwarg])
         except TypeError:
-            raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`' %
+            raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
                             (_get_function_print_name(func), kwarg, type_hints[kwarg]))
 
 
@@ -204,15 +181,16 @@ def _resolve_configuration_helper(dict_, keys):
     if not isinstance(dict_, HParams) and isinstance(dict_, dict):
         return_ = {}
         if len(dict_) == 0:
-            raise TypeError('Failed to find `HParams` object along path %s.' % '.'.join(keys))
+            raise TypeError('Failed to find `HParams` object along path `%s`.' % '.'.join(keys))
         for key in dict_:
             resolved = _resolve_configuration_helper(dict_[key], keys[:] + [key])
             if len(set(resolved.keys()) & set(return_.keys())) > 0:
-                raise TypeError('Function %s was defined twice in configuration.' % key)
+                raise TypeError('Function `%s` was defined twice in configuration.' %
+                                '.'.join(keys + [key]))
             return_.update(resolved)
         return return_
     elif not isinstance(dict_, HParams) and not isinstance(dict_, dict):
-        raise TypeError('Failed to find `HParams` object along path %s.' % '.'.join(keys))
+        raise TypeError('Failed to find `HParams` object along path `%s`.' % '.'.join(keys))
 
     trace = []
     for i in reversed(range(1, len(keys))):
@@ -292,16 +270,16 @@ def _parse_configuration_helper(dict_, parsed_dict):
 
     for key in dict_:
         if not (inspect.ismodule(key) or isinstance(key, str) or callable(key)):
-            raise TypeError('Invalid Configuration: Key must be a string, module, or callable.')
+            raise TypeError('Key `%s` must be a string, module, or callable.' % key)
         split = (key if isinstance(key, str) else _get_function_path(key)).split('.')
         past_parsed_dict = parsed_dict
         for i, split_key in enumerate(split):
             if split_key == '':
-                raise TypeError('Invalid Configuration: Improper key format %s' % key)
+                raise TypeError('Improper key format `%s`.' % key)
             if i == len(split) - 1 and (not isinstance(dict_[key], dict) or
                                         isinstance(dict_[key], HParams)):
                 if split_key in parsed_dict:
-                    raise TypeError('Invalid Configuration: This key %s is a duplicate.' % key)
+                    raise TypeError('This key `%s` is a duplicate.' % key)
                 parsed_dict[split_key] = dict_[key]
             else:
                 if split_key not in parsed_dict:
@@ -344,11 +322,11 @@ def _parse_configuration(dict_):
 _configuration = {}
 
 
-def add_config(dict_):
+def add_config(config):
     """ Add configuration to the global configuration.
 
     Args:
-        dict_ (dict): Configuration to add.
+        config (dict): Configuration to add.
 
     Returns: None
 
@@ -356,11 +334,11 @@ def add_config(dict_):
         The existing global configuration is merged with the new configuration.
 
     Raises:
-        (TypeError): If any path in `dict_` does not end at some configurable decorated function.
-        (TypeError): If any path in `dict_` does not end in an `HParams` object.
-        (TypeError): If any path in `dict_` cannot be imported.
-        (TypeError): If any path in `dict_` refers to the same function.
-        (TypeError or ValueError): If any path in `dict_` has an `HParams` object that does not
+        (TypeError): If any path in `config` does not end at some configurable decorated function.
+        (TypeError): If any path in `config` does not end in an `HParams` object.
+        (TypeError): If any path in `config` cannot be imported.
+        (TypeError): If any path in `config` refers to the same function.
+        (TypeError or ValueError): If any path in `config` has an `HParams` object that does not
             match the function signature.
         (TypeError): If any key is not a string, module, or callable.
         (TypeError): If any string key is not formatted like a python dotted module name.
@@ -378,7 +356,7 @@ def add_config(dict_):
           2]]
     """
     global _configuration
-    parsed = _parse_configuration(dict_)
+    parsed = _parse_configuration(config)
     resolved = _resolve_configuration(parsed)
     for key in resolved:
         if key in _configuration:
@@ -465,7 +443,7 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
 
 
 def configurable(function=None):
-    """ Decorater enables configuring module arguments and storing module argument calls.
+    """ Decorator enables configuring module arguments.
 
     Decorator enables one to set the arguments of a module via a global configuration. The decorator
     also stores the parameters the decorated function was called with.
@@ -503,6 +481,8 @@ def configurable(function=None):
         # Ensure all `HParam` objects are overridden.
         [h._raise() for n, h in function_hparams if n not in config]
 
+        # NOTE: Skip type checking via `_function_has_keyword_parameters` for performance.
+
         args, kwargs = _merge_args(function_parameters, args, kwargs, config, function_print_name,
                                    is_first_run)
 
@@ -525,7 +505,8 @@ def configurable(function=None):
 
 
 def parse_hparam_args(args):
-    """ Parse CLI arguments like `['--torch.optim.adam.Adam.__init__.lr', '0.1']` to :class:`dict`.
+    """ Parse CLI arguments like `['--torch.optim.adam.Adam.__init__', 'HParams(lr=0.1)']` to
+      :class:`dict`.
 
     Args:
         args (list of str): List of CLI arguments
@@ -554,6 +535,10 @@ def parse_hparam_args(args):
 
         key = key[2:]  # Remove double flags
         return_[key] = eval(value)
+
+        if not isinstance(return_[key], HParams):
+            raise ValueError('The command line argument value must be an `HParams` object like so '
+                             '`--torch.optim.adam.Adam.__init__=HParams(lr=0.1)`.')
 
     logger.info('These command line arguments were parsed into:\n%s', return_)
 
