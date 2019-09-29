@@ -92,7 +92,8 @@ def _get_function_signature(func):
                     relative_filename = new_filename
             except ValueError:
                 pass
-        return relative_filename.replace('/', '.')[:-3] + '.' + func.__qualname__
+        filename = str(relative_filename if relative_filename is not None else absolute_filename)
+        return filename.replace('/', '.')[:-3] + '.' + func.__qualname__
     except TypeError:
         return '#' + func.__qualname__
 
@@ -356,6 +357,10 @@ def add_config(config):
           2]]
     """
     global _configuration
+
+    if len(config) == 0:
+        return
+
     parsed = _parse_configuration(config)
     resolved = _resolve_configuration(parsed)
     for key in resolved:

@@ -75,6 +75,15 @@ def test__get_function_signature():
         test__get_function_signature) == 'tests.test_hparams.test__get_function_signature'
 
 
+def test__get_function_signature__no_sys_path():
+    """ Test to ensure that `_get_function_signature` can handle an absolute path. """
+    original = sys.path
+    sys.path = []
+    assert 'tests.test_hparams.test__get_function_signature' in _get_function_signature(
+        test__get_function_signature__no_sys_path)
+    sys.path = original
+
+
 def test__get_function_path__module():
     assert _get_function_path(hparams.hparams) == 'hparams.hparams'
 
@@ -197,12 +206,29 @@ def test__resolve_configuration__lambda_function():
 
 
 @configurable
+def _test__resolve_configuration__no_sys_path():
+    pass
+
+
+def test__resolve_configuration__no_sys_path():
+    """ Test resolution with no `sys` path. """
+    original = sys.path
+    sys.path = []
+    parsed = _parse_configuration(
+        {_test__resolve_configuration__no_sys_path.__wrapped__: HParams()})
+    function_signature = _get_function_signature(
+        _test__resolve_configuration__no_sys_path.__wrapped__)
+    assert isinstance(_resolve_configuration(parsed)[function_signature], HParams)
+    sys.path = original
+
+
+@configurable
 def _test__resolve_configuration__multiple_sys_path():
     pass
 
 
 def test__resolve_configuration__multiple_sys_path():
-    """ Test resolution for multiple sys path. """
+    """ Test resolution for multiple `sys` path. """
     sys.path = [os.path.dirname(__file__)] + sys.path
     function_name = 'test_hparams._test__resolve_configuration__multiple_sys_path'
     parsed = _parse_configuration({function_name: HParams()})
@@ -724,6 +750,13 @@ def test_configurable__unwrap():
     expected = ''
     add_config({configured.__wrapped__: HParams(arg=expected)})
     assert configured() == expected
+
+
+def test_add_config__empty():
+    """ Test if `add_config` works with an empty config. """
+    clear_config()
+    add_config({})
+    assert {} == get_config()
 
 
 class __test__resolve_configuration__super_class:
