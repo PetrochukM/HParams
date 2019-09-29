@@ -1,10 +1,10 @@
 <p align="center"><img width="50%" src="hparams-05.svg" /></p>
 
-<h3 align="center">Extensible and Fault-Taulerant Hyperparameter Management Module</h3>
+<h3 align="center">Extensible and Fault-Tolerant Hyperparameter Management Module</h3>
 
-HParams is a thoughtful approach to configuration management for machine learning projects.  
-With HParams you can, externalize your hyperparameters into the configuration file(s).  
-In so, allowing you to reproduce experiments, iterate quickly, and reduce errors.
+HParams is a thoughtful approach to configuration management for machine learning projects. It
+enables you to externalize your hyperparameters into a configuration file. In doing so, it allows
+you to reproduce experiments, iterate quickly, and reduce errors.
 
 **Features:**
 
@@ -124,7 +124,7 @@ Adam.__init__ = configurable(Adam.__init__)
 
 def train():  # Train the model and return the loss.
     pass
-    
+
 for betas in itertools.product([0.999, 0.99, 0.9], [0.999, 0.99, 0.9]):
     add_config({Adam.__init__: HParams(betas=betas)})  # Grid search over the `betas`
     train()
