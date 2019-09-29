@@ -90,6 +90,9 @@ add_config({'random.seed': HParams(a=123)})
 
 ```python
 # main.py
+import config
+import random
+
 random.seed()
 ```
 
