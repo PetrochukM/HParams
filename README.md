@@ -60,13 +60,11 @@ add_config({ 'main': {
 }})
 ```
 
-HParams supports optional configuration typechecking to help you find bugs. To ensure correctness,
-it throws errors or warnings if a hyperparameter is missing a configuration. Finally, the
-decorator adds little to no runtime overhead (< 1e-05 seconds) per function.
+HParams supports optional configuration typechecking to help you find bugs! 🐛
 
 ### Set Defaults
 
-Configure PyTorch and Tensorflow defaults to match globally via:
+Configure PyTorch and Tensorflow defaults to match via:
 
 ```python
 from torch.nn import BatchNorm1d
