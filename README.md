@@ -1,15 +1,15 @@
-<p align="center"><img width="50%" src="hparams-20.svg" /></p>
+<p align="center"><img width="544px" src="hparams-20.svg" /></p>
 
-<h3 align="center">Extensible and Fault-Tolerant Hyperparameter Management Module</h3>
+<h3 align="center">Extensible and Fault-Tolerant Hyperparameter Management</h3>
 
 HParams is a thoughtful approach to configuration management for machine learning projects. It
-enables you to externalize your hyperparameters into a configuration file. In doing so, it allows
-you to reproduce experiments, iterate quickly, and reduce errors.
+enables you to externalize your hyperparameters into a configuration file. In doing so, you can
+reproduce experiments, iterate quickly, and reduce errors.
 
 **Features:**
 
    - Approachable and easy-to-use API
-   - Battle-tested over two years
+   - Battle-tested over three years
    - Fast with little to no runtime overhead (< 1e-05 seconds) per configured function
    - Robust to most use cases with 100% test coverage and 71 tests
    - Lightweight with only one dependency
@@ -60,13 +60,11 @@ add_config({ 'main': {
 }})
 ```
 
-HParams supports optional configuration typechecking to help you find bugs. To ensure correctness,
-it throws errors or warnings if a hyperparameter is missing a configuration. Finally, the
-decorator adds little to no runtime overhead (< 1e-05 seconds) per function.
+HParams supports optional configuration typechecking to help you find bugs! 🐛
 
 ### Set Defaults
 
-Configure PyTorch and Tensorflow defaults to match globally via:
+Configure PyTorch and Tensorflow defaults to match via:
 
 ```python
 from torch.nn import BatchNorm1d
