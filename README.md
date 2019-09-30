@@ -21,7 +21,7 @@ reproduce experiments, iterate quickly, and reduce errors.
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Twitter: PetrochukM](https://img.shields.io/twitter/follow/MPetrochuk.svg?style=social)](https://twitter.com/MPetrochuk)
 
-_Credit to [Chloe Yeo](http://www.yeochloe.com/) for the logo and to [Anton Mikhailov](https://ai.googleblog.com/2019/08/turbo-improved-rainbow-colormap-for.html) for the gradient.
+_Credit to [Chloe Yeo](http://www.yeochloe.com/) for the logo and to [Anton Mikhailov](https://ai.googleblog.com/2019/08/turbo-improved-rainbow-colormap-for.html) for the gradient_
 
 ## Installation
 
