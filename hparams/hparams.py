@@ -7,6 +7,7 @@ from typing import Any
 from typing import get_type_hints
 
 import inspect
+import itertools
 import logging
 import pprint
 import sys
@@ -79,6 +80,11 @@ def _get_function_signature(func):
     """ Get a unique signature for each function.
     """
     try:
+        # NOTE: Unwrap function decorators because they add indirection to the actual function
+        # filename.
+        while hasattr(func, '__wrapped__'):
+            func = func.__wrapped__
+
         absolute_filename = Path(inspect.getfile(func))
         # NOTE: `relative_filename` is the longest filename relative to `sys.path` paths but
         # shorter than a absolute filename.
@@ -114,13 +120,13 @@ def _get_function_parameters(func):
 
 
 @lru_cache()
-def _get_function_hparams(func):
-    """ Get all keyword parameters set to `HParam` in func.
+def _get_function_default_kwargs(func):
+    """ Get all keyword parameters in func.
     """
     return {
         k: v.default
         for k, v in _get_function_parameters(func).items()
-        if v.default is not inspect.Parameter.empty and isinstance(v.default, HParam)
+        if v.default is not inspect.Parameter.empty
     }
 
 
@@ -425,7 +431,7 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
                 parameters[i].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
             if parameters[i].name in merged_kwargs:
                 value = merged_kwargs[parameters[i].name]
-                if is_first_run and value != arg:
+                if is_first_run:
                     logger.warning(
                         '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
                         'with `%s`. This warning will not be repeated in this process.',
@@ -434,7 +440,7 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
 
     if is_first_run:
         for key, value in kwargs.items():
-            if key in merged_kwargs and value != merged_kwargs[key]:
+            if key in merged_kwargs:
                 logger.warning(
                     '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
                     'with `%s`. This warning will not be repeated in this process.', key,
@@ -462,7 +468,7 @@ def configurable(function=None):
     function_signature = _get_function_signature(function)
     function_print_name = _get_function_print_name(function)
     function_parameters = list(_get_function_parameters(function).values())
-    function_hparams = _get_function_hparams(function).items()
+    function_default_kwargs = _get_function_default_kwargs(function)
     is_first_run = True
 
     def _get_configuration():
@@ -475,18 +481,19 @@ def configurable(function=None):
 
         # Get the function configuration
         config = _get_configuration()
-        if is_first_run and len(config) == 0:
+        if is_first_run and function_signature not in _configuration:
             logger.warning(
                 '@configurable: No config for `%s`. '
                 'This warning will not be repeated in this process.', function_print_name)
 
+        default_kwargs = function_default_kwargs.copy()
+        default_kwargs.update(config)
+
+        args, kwargs = _merge_args(function_parameters, args, kwargs, default_kwargs,
+                                   function_print_name, is_first_run)
+
         # Ensure all `HParam` objects are overridden.
-        [h._raise() for n, h in function_hparams if n not in config]
-
-        # NOTE: Skip type checking via `_function_has_keyword_parameters` for performance.
-
-        args, kwargs = _merge_args(function_parameters, args, kwargs, config, function_print_name,
-                                   is_first_run)
+        [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, HParam)]
 
         if is_first_run:
             is_first_run = False

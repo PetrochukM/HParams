@@ -14,12 +14,12 @@ import pytest
 import _pytest
 
 from hparams.hparams import _function_has_keyword_parameters
-from hparams.hparams import _get_function_hparams
+from hparams.hparams import _get_function_default_kwargs
 from hparams.hparams import _get_function_path
 from hparams.hparams import _get_function_signature
+from hparams.hparams import _merge_args
 from hparams.hparams import _parse_configuration
 from hparams.hparams import _resolve_configuration
-from hparams.hparams import _merge_args
 from hparams.hparams import add_config
 from hparams.hparams import clear_config
 from hparams.hparams import configurable
@@ -319,7 +319,6 @@ def test__resolve_configuration__configured_hparam():
     assert isinstance(_resolve_configuration(parsed)[function_signature], HParams)
 
 
-
 @configurable
 def _test__resolve_configuration__duplicate():
     pass
@@ -461,32 +460,32 @@ def test__function_has_keyword_parameters__less_verbose_type_hints():
         _function_has_keyword_parameters(func, {'kwarg': None})
 
 
-def test__get_function_hparams__empty():
-    """ Test if `_get_function_hparams` handles an empty function. """
+def test__get_function_default_kwargs__empty():
+    """ Test if `_get_function_default_kwargs` handles an empty function. """
 
     def func():
         pass
 
-    assert list(_get_function_hparams(func).keys()) == []
+    assert list(_get_function_default_kwargs(func).keys()) == []
 
 
-def test__get_function_hparams__hparam():
-    """ Test if `_get_function_hparams` handles a single `HParam`. """
+def test__get_function_default_kwargs__kwarg():
+    """ Test if `_get_function_default_kwargs` handles a single kwarg. """
 
     def func(kwarg=HParam()):
         pass
 
-    assert list(_get_function_hparams(func).keys()) == ['kwarg']
-    assert all([isinstance(v, HParam) for v in _get_function_hparams(func).values()])
+    assert list(_get_function_default_kwargs(func).keys()) == ['kwarg']
+    assert all([isinstance(v, HParam) for v in _get_function_default_kwargs(func).values()])
 
 
-def test__get_function_hparams__arg_kwarg():
-    """ Test if `_get_function_hparams` handles a kwarg, arg, args, and kwargs. """
+def test__get_function_default_kwargs__arg_kwarg():
+    """ Test if `_get_function_default_kwargs` handles a kwarg, arg, args, and kwargs. """
 
     def func(arg, *args, kwarg=None, **kwargs):
         pass
 
-    assert list(_get_function_hparams(func).keys()) == []
+    assert list(_get_function_default_kwargs(func).keys()) == ['kwarg']
 
 
 def test_config_operators():
@@ -685,6 +684,39 @@ def test_configurable__no_config(logger_mock):
     configured()
     logger_mock.warning.assert_not_called()
     logger_mock.reset_mock()
+
+
+@mock.patch('hparams.hparams.logger')
+def test_configurable__override(logger_mock):
+    """ Test if `@configurable` throws an error on a override of an `HParam` argument that's not
+    configured.
+    """
+
+    @configurable
+    def configured(arg=HParam()):
+        return arg
+
+    add_config({configured: HParams()})
+
+    logger_mock.reset_mock()
+    configured('a')
+    assert logger_mock.warning.call_count == 1
+
+
+@mock.patch('hparams.hparams.logger')
+def test_configurable__empty_configuration_warnings(logger_mock):
+    """ Test if `@configurable` throws warnings for an empty configuration.
+    """
+
+    @configurable
+    def configured():
+        pass
+
+    add_config({configured: HParams()})
+
+    logger_mock.reset_mock()
+    configured()
+    assert logger_mock.warning.call_count == 0
 
 
 def test_configurable__get_partial():
