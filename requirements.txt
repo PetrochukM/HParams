@@ -14,11 +14,6 @@ pytest-cov
 # Linting
 flake8
 
-# HTML Documentation
-sphinx
-sphinx_rtd_theme
-sphinx-autobuild
-
 # Auto Formatter
 yapf
 

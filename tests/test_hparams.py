@@ -319,17 +319,6 @@ def test__resolve_configuration__configured_hparam():
     assert isinstance(_resolve_configuration(parsed)[function_signature], HParams)
 
 
-@configurable
-def _test__resolve_configuration__not_configured_hparam(arg=HParam()):
-    pass
-
-
-def test__resolve_configuration__not_configured_hparam():
-    """ Test resolution for a none-configured `HParam`. """
-    parsed = _parse_configuration({_test__resolve_configuration__not_configured_hparam: HParams()})
-    with pytest.raises(ValueError):
-        _resolve_configuration(parsed)
-
 
 @configurable
 def _test__resolve_configuration__duplicate():

@@ -212,11 +212,8 @@ def _resolve_configuration_helper(dict_, keys):
                 # Check all keyword arguments (`dict_`) are defined in function.
                 _function_has_keyword_parameters(attribute.__wrapped__, dict_)
 
-                # Check `HParam` arguments are set.
-                for name, hparam in _get_function_hparams(attribute.__wrapped__).items():
-                    if name not in dict_:
-                        hparam._raise()
-
+                # NOTE: Do not check if all `HParam` arguments are set to allow to allow for
+                # `add_config` to be called multiples with partial configurations.
                 return {_get_function_signature(attribute.__wrapped__): dict_}
             else:
                 trace.append('`%s` is not decorated with `configurable`.' % '.'.join(keys))
@@ -228,7 +225,7 @@ def _resolve_configuration_helper(dict_, keys):
     trace.reverse()
 
     raise TypeError('Failed to find `configurable` decorator along path `%s`.\n' % '.'.join(keys) +
-                    'Attempts (most recent attempt last):\n\t%s' % ('\n\t'.join(trace),))
+                    'Attempts (most recent attempt last):\n  %s' % ('\n  '.join(trace),))
 
 
 def _resolve_configuration(dict_):
