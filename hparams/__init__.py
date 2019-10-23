@@ -11,4 +11,4 @@ __all__ = [
     'HParams', 'HParam', 'add_config', 'clear_config', 'log_config', 'configurable', 'get_config',
     'parse_hparam_args'
 ]
-__version__ = '0.2.0'
+__version__ = '0.2.1'
