@@ -8,11 +8,11 @@ reproduce experiments, iterate quickly, and reduce errors.
 
 **Features:**
 
-   - Approachable and easy-to-use API
-   - Battle-tested over three years
-   - Fast with little to no runtime overhead (< 1e-05 seconds) per configured function
-   - Robust to most use cases with 100% test coverage and 71 tests
-   - Lightweight with only one dependency
+- Approachable and easy-to-use API
+- Battle-tested over three years
+- Fast with little to no runtime overhead (< 1e-05 seconds) per configured function
+- Robust to most use cases with 100% test coverage and 71 tests
+- Lightweight with only one dependency
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
@@ -27,11 +27,15 @@ _Thanks to [Chloe Yeo](http://www.yeochloe.com/) for the logo._
 
 Make sure you have Python 3. You can then install `hparams` using `pip`:
 
+    ```bash
     pip install hparams
+    ```
 
 Install the latest code via:
 
+    ```bash
     pip install git+https://github.com/PetrochukM/HParams.git
+    ```
 
 ## Examples 🤗
 
@@ -41,24 +45,24 @@ Add HParams to your project by following one of these common use cases:
 
 Configure your training run, like so:
 
-```python
-from hparams import configurable, add_config, HParams, HParam
-from typing import Union
+    ```python
+    from hparams import configurable, add_config, HParams, HParam
+    from typing import Union
 
-@configurable
-def train(batch_size=HParam(int)):
-    pass
+    @configurable
+    def train(batch_size=HParam(int)):
+        pass
 
-class Model():
-    def __init__(hidden_size: Union[int, HParam] = HParam(),
-                 dropout: Union[float, HParam] = HParam()):
-          pass
+    class Model():
+        def __init__(hidden_size: Union[int, HParam] = HParam(),
+                    dropout: Union[float, HParam] = HParam()):
+            pass
 
-add_config({ 'main': {
-  'train': HParams(batch_size=32),
-  'Model.__init__': HParams(hidden_size=1024, dropout=0.25),
-}})
-```
+    add_config({ 'main': {
+    'train': HParams(batch_size=32),
+    'Model.__init__': HParams(hidden_size=1024, dropout=0.25),
+    }})
+    ```
 
 HParams supports optional configuration typechecking to help you find bugs! 🐛
 
@@ -66,96 +70,96 @@ HParams supports optional configuration typechecking to help you find bugs! 🐛
 
 Configure PyTorch and Tensorflow defaults to match via:
 
-```python
-from torch.nn import BatchNorm1d
-from hparams import configurable, add_config, HParams
+    ```python
+    from torch.nn import BatchNorm1d
+    from hparams import configurable, add_config, HParams
 
-# NOTE: `momentum=0.01` to match Tensorflow defaults
-BatchNorm1d.__init__ = configurable(BatchNorm1d.__init__)
-add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
-```
+    # NOTE: `momentum=0.01` to match Tensorflow defaults
+    BatchNorm1d.__init__ = configurable(BatchNorm1d.__init__)
+    add_config({ 'torch.nn.BatchNorm1d.__init__': HParams(momentum=0.01) })
+    ```
 
 Configure your random seed globally, like so:
 
-```python
-# config.py
-import random
-from hparams import configurable, add_config, HParams
+    ```python
+    # config.py
+    import random
+    from hparams import configurable, add_config, HParams
 
-random.seed = configurable(random.seed)
-add_config({'random.seed': HParams(a=123)})
-```
+    random.seed = configurable(random.seed)
+    add_config({'random.seed': HParams(a=123)})
+    ```
 
-```python
-# main.py
-import config
-import random
+    ```python
+    # main.py
+    import config
+    import random
 
-random.seed()
-```
+    random.seed()
+    ```
 
 ### CLI
 
 Experiment with hyperparameters through your command line, for example:
 
-```console
-foo@bar:~$ file.py --torch.optim.adam.Adam.__init__ HParams(lr=0.1,betas=(0.999,0.99))
-```
+    ```console
+    foo@bar:~$ file.py --torch.optim.adam.Adam.__init__ 'HParams(lr=0.1,betas=(0.999,0.99))'
+    ```
 
-```python
-import sys
-from torch.optim import Adam
-from hparams import configurable, add_config, parse_hparam_args
+    ```python
+    import sys
+    from torch.optim import Adam
+    from hparams import configurable, add_config, parse_hparam_args
 
-Adam.__init__ = configurable(Adam.__init__)
-parsed = parse_hparam_args(sys.argv[1:])  # Parse command line arguments
-add_config(parsed)
-```
+    Adam.__init__ = configurable(Adam.__init__)
+    parsed = parse_hparam_args(sys.argv[1:])  # Parse command line arguments
+    add_config(parsed)
+    ```
 
 ### Hyperparameter optimization
 
 Hyperparameter optimization is easy to-do, check this out:
 
-```python
-import itertools
-from torch.optim import Adam
-from hparams import configurable, add_config, HParams
+    ```python
+    import itertools
+    from torch.optim import Adam
+    from hparams import configurable, add_config, HParams
 
-Adam.__init__ = configurable(Adam.__init__)
+    Adam.__init__ = configurable(Adam.__init__)
 
-def train():  # Train the model and return the loss.
-    pass
+    def train():  # Train the model and return the loss.
+        pass
 
-for betas in itertools.product([0.999, 0.99, 0.9], [0.999, 0.99, 0.9]):
-    add_config({Adam.__init__: HParams(betas=betas)})  # Grid search over the `betas`
-    train()
-```
+    for betas in itertools.product([0.999, 0.99, 0.9], [0.999, 0.99, 0.9]):
+        add_config({Adam.__init__: HParams(betas=betas)})  # Grid search over the `betas`
+        train()
+    ```
 
 ### Track Hyperparameters
 
 Easily track your hyperparameters using tools like [Comet](comet.ml).
 
-```python
-from comet_ml import Experiment
-from hparams import get_config
+    ```python
+    from comet_ml import Experiment
+    from hparams import get_config
 
-experiment = Experiment()
-experiment.log_parameters(get_config())
-```
+    experiment = Experiment()
+    experiment.log_parameters(get_config())
+    ```
 
 ### Multiprocessing: Partial Support
 
 Export a Python `functools.partial` to use in another process, like so:
 
-```python
-from hparams import configurable, HParam
+    ```python
+    from hparams import configurable, HParam
 
-@configurable
-def func(hparam=HParam()):
-    pass
+    @configurable
+    def func(hparam=HParam()):
+        pass
 
-partial = func.get_configured_partial()
-```
+    partial = func.get_configured_partial()
+    ```
 
 With this approach, you don't have to transfer the global state to the new process. To transfer the
 global state, you'll want to use `get_config` and `add_config`.
@@ -174,25 +178,25 @@ community.
 
 Read our [contributing guide](https://github.com/PetrochukM/HParams/blob/master/CONTRIBUTING.md) to
 learn about our development process, how to propose bugfixes and improvements, and how to build and
-test your changes to hparams.
+test your changes to HParams.
 
 ## Authors
 
-* [Michael Petrochuk](https://github.com/PetrochukM/) — Developer
-* [Chloe Yeo](http://www.yeochloe.com/) — Logo Design
+- [Michael Petrochuk](https://github.com/PetrochukM/) — Developer
+- [Chloe Yeo](http://www.yeochloe.com/) — Logo Design
 
 ## Citing
 
-If you find hparams useful for an academic publication, then please use the following BibTeX to
+If you find HParams useful for an academic publication, then please use the following BibTeX to
 cite it:
 
-```
-@misc{hparams,
-  author = {Petrochuk, Michael},
-  title = {HParams: Hyperparameter management solution},
-  year = {2019},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/PetrochukM/HParams}},
-}
-```
+    ```
+    @misc{hparams,
+    author = {Petrochuk, Michael},
+    title = {HParams: Hyperparameter management solution},
+    year = {2019},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://github.com/PetrochukM/HParams}},
+    }
+    ```

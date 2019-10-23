@@ -702,6 +702,10 @@ def test_configurable__override(logger_mock):
     configured('a')
     assert logger_mock.warning.call_count == 1
 
+    # It shouldn't throw a second warning
+    configured('a')
+    assert logger_mock.warning.call_count == 1
+
 
 @mock.patch('hparams.hparams.logger')
 def test_configurable__empty_configuration_warnings(logger_mock):

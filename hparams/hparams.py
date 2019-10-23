@@ -432,9 +432,11 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
             if parameters[i].name in merged_kwargs:
                 value = merged_kwargs[parameters[i].name]
                 if is_first_run:
+                    # TODO: These warnings should be done with `warnings.warn` based on this:
+                    # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
                     logger.warning(
                         '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
-                        'with `%s`. This warning will not be repeated in this process.',
+                        'with `%s`. This warning will not be repeated in this thread.',
                         parameters[i].name, value, print_name, arg)
                 del merged_kwargs[parameters[i].name]
 
@@ -443,7 +445,7 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
             if key in merged_kwargs:
                 logger.warning(
                     '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
-                    'with `%s`. This warning will not be repeated in this process.', key,
+                    'with `%s`. This warning will not be repeated in this thread.', key,
                     merged_kwargs[key], print_name, value)
 
     merged_kwargs.update(kwargs)
@@ -484,7 +486,7 @@ def configurable(function=None):
         if is_first_run and function_signature not in _configuration:
             logger.warning(
                 '@configurable: No config for `%s`. '
-                'This warning will not be repeated in this process.', function_print_name)
+                'This warning will not be repeated in this thread.', function_print_name)
 
         default_kwargs = function_default_kwargs.copy()
         default_kwargs.update(config)
@@ -528,7 +530,7 @@ def parse_hparam_args(args):
     while len(args) > 0:
         arg = args.pop(0)
 
-        error = ValueError('The command line argument `%s` is ambiguous. '
+        error = ValueError('The command line argument `%s` is ambiguous. ' % arg +
                            'The format must be either `--key=value` or `--key value`.')
 
         try:
