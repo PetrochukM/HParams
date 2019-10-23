@@ -46,6 +46,7 @@ Add HParams to your project by following one of these common use cases:
 Configure your training run, like so:
 
 ```python
+# main.py
 from hparams import configurable, add_config, HParams, HParam
 from typing import Union
 
