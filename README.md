@@ -46,21 +46,23 @@ Add HParams to your project by following one of these common use cases:
 Configure your training run, like so:
 
 ```python
+# main.py
 from hparams import configurable, add_config, HParams, HParam
 from typing import Union
 
 @configurable
-def train(batch_size=HParam(int)):
+def train(batch_size: Union[int, HParam]=HParam(int)):
     pass
 
 class Model():
-    def __init__(hidden_size: Union[int, HParam] = HParam(),
-                dropout: Union[float, HParam] = HParam()):
+
+    @configurable
+    def __init__(self, hidden_size=HParam(int), dropout=HParam(float)):
         pass
 
 add_config({ 'main': {
-'train': HParams(batch_size=32),
-'Model.__init__': HParams(hidden_size=1024, dropout=0.25),
+    'train': HParams(batch_size=32),
+    'Model.__init__': HParams(hidden_size=1024, dropout=0.25),
 }})
 ```
 
