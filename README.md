@@ -21,7 +21,7 @@ reproduce experiments, iterate quickly, and reduce errors.
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Twitter: PetrochukM](https://img.shields.io/twitter/follow/MPetrochuk.svg?style=social)](https://twitter.com/MPetrochuk)
 
-_Thanks to [Chloe Yeo](http://www.yeochloe.com/) for the logo._
+_Logo by [Chloe Yeo](http://www.yeochloe.com/), Corporate Sponsorship by [WellSaid Labs](https://wellsaidlabs.com/)_
 
 ## Installation
 
