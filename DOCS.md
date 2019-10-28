@@ -104,13 +104,13 @@ Get the current global configuration.
 
 Anti-patterns:
 
-    - Using the return value of this function to set the configuration with `add_config`. 
-      That will introduce unnecessary coupling and complexity that this module is designed
-      to avoid.
+  - Using the return value of this function to set the configuration with `add_config`. 
+    That will introduce unnecessary coupling and complexity that this module is designed
+    to avoid.
 
 Returns:
 
-    - (dict): Return the current configuration as a dictionary.
+  - (dict): Return the current configuration as a dictionary.
 
 ### clear_config
 
@@ -118,7 +118,7 @@ Clear the current global configuration.
 
 Side-effects:
 
-    - The global configuration is reset to it's initial state.
+  - The global configuration is reset to it's initial state.
 
 ### log_config
 
@@ -131,11 +131,11 @@ that is compatible with `add_config`.
 
 Args:
 
-    - args (`list`): List of `str` to parse.
+  - args (`list`): List of `str` to parse.
 
 Returns:
 
-    - (dict): A dictionary that is compatible with `add_config`.
+  - (dict): A dictionary that is compatible with `add_config`.
 
 Example:
 

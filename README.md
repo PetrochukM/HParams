@@ -37,11 +37,24 @@ Install the latest code via:
 pip install git+https://github.com/PetrochukM/HParams.git
 ```
 
-## Examples 🤗
+## Oops 🐛
+
+With HParams, you will avoid common but needless hyperparameter mistakes. It will throw a warning 
+or error if:
+
+- A hyperparameter is overwritten.
+- A hyperparameter is declared but not set.
+- A hyperparameter is set but not declared. 
+- A hyperparameter type is incorrect.
+
+Finally, HParams is built with developer experience in mind. The errors thrown by HParams 
+are verbose to ensure a swift resolution.
+
+## Examples 
 
 Add HParams to your project by following one of these common use cases:
 
-### Configure Training
+### Configure Training 🤗
 
 Configure your training run, like so:
 
