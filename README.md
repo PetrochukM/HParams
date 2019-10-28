@@ -11,7 +11,7 @@ reproduce experiments, iterate quickly, and reduce errors.
 - Approachable and easy-to-use API
 - Battle-tested over three years
 - Fast with little to no runtime overhead (< 1e-05 seconds) per configured function
-- Robust to most use cases with 100% test coverage and 72 tests
+- Robust to most use cases with 100% test coverage and 74 tests
 - Lightweight with only one dependency
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/hparams.svg?style=flat-square)
@@ -39,18 +39,18 @@ pip install git+https://github.com/PetrochukM/HParams.git
 
 ## Oops 🐛
 
-With HParams, you will avoid common but needless hyperparameter mistakes. It will throw a warning 
+With HParams, you will avoid common but needless hyperparameter mistakes. It will throw a warning
 or error if:
 
 - A hyperparameter is overwritten.
 - A hyperparameter is declared but not set.
-- A hyperparameter is set but not declared. 
+- A hyperparameter is set but not declared.
 - A hyperparameter type is incorrect.
 
-Finally, HParams is built with developer experience in mind. The errors thrown by HParams 
+Finally, HParams is built with developer experience in mind. The errors thrown by HParams
 are verbose to ensure a swift resolution.
 
-## Examples 
+## Examples
 
 Add HParams to your project by following one of these common use cases:
 
