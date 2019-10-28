@@ -586,20 +586,25 @@ def test_merge_arg_kwarg(logger_mock):
     parameters = list(inspect.signature(lambda_).parameters.values())
 
     # Prefer `args` over `other_kwargs`
-    merged = _merge_args(parameters, ['a', 'abc'], {}, {'b': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a', 'abc'], {}, {'b': 'xyz'}, {}, '', True)
     assert merged == (['a', 'abc'], {})
     assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # Prefer `kwargs` over `other_kwargs`
-    merged = _merge_args(parameters, ['a'], {'b': 'abc'}, {'b': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a'], {'b': 'abc'}, {'b': 'xyz'}, {}, '', True)
     assert merged == (['a'], {'b': 'abc'})
     assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # Prefer `other_kwargs` over default argument
-    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, {'b': 'abc'}, '', True)
     assert merged == (['a'], {'b': 'xyz'})
+    logger_mock.warning.assert_not_called()
+
+    # Prefer default argument over nothing
+    merged = _merge_args(parameters, ['a'], {}, {}, {'b': 'abc'}, '', True)
+    assert merged == (['a'], {'b': 'abc'})
     logger_mock.warning.assert_not_called()
 
 
@@ -619,18 +624,18 @@ def test_merge_arg_variable(logger_mock):
     lambda_ = lambda a, *args, b='abc': (a, args, b)
     parameters = list(inspect.signature(lambda_).parameters.values())
 
-    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'b': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'b': 'xyz'},  {},'', True)
     assert merged == (['a', 'b', 'c'], {'b': 'xyz'})
     logger_mock.warning.assert_not_called()
     logger_mock.reset_mock()
 
-    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'a': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'a': 'xyz'}, {}, '', True)
     assert merged == (['a', 'b', 'c'], {})
     assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
     # More arguments than parameters
-    merged = _merge_args(parameters, ['a', 'b', 'c', 'd', 'e', 'g'], {}, {'a': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a', 'b', 'c', 'd', 'e', 'g'], {}, {'a': 'xyz'},  {},'', True)
     assert merged == (['a', 'b', 'c', 'd', 'e', 'g'], {})
     assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
@@ -643,17 +648,17 @@ def test_merge_kwarg_variable(logger_mock):
     lambda_ = lambda a, b, **kwargs: (a, b, kwargs)
     parameters = list(inspect.signature(lambda_).parameters.values())
 
-    merged = _merge_args(parameters, ['a', 'b'], {}, {'b': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a', 'b'], {}, {'b': 'xyz'},  {},'', True)
     assert merged == (['a', 'b'], {})
     assert logger_mock.warning.call_count == 1
     logger_mock.reset_mock()
 
-    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, {}, '', True)
     assert merged == (['a'], {'b': 'xyz'})
     logger_mock.warning.assert_not_called()
     logger_mock.reset_mock()
 
-    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz', 'c': 'abc'}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz', 'c': 'abc'},  {},'', True)
     assert merged == (['a'], {'b': 'xyz', 'c': 'abc'})
     logger_mock.warning.assert_not_called()
     logger_mock.reset_mock()
@@ -666,6 +671,19 @@ def test_merge_args__too_many_args():
     # Test too many arguments passed
     with pytest.raises(TypeError):
         _merge_args(parameters, ['a', 'abc', 'one too many'], {}, {'b': 'xyz'}, '', True)
+
+
+@configurable
+def _test_configurable__valid_config(arg, *args, kwarg=None, hparam=HParam(), **kwargs):
+    pass
+
+
+@mock.patch('hparams.hparams.logger')
+def test_configurable__regression_overriding(logger_mock):
+    """ Test `@configurable` that there are no warnings with a valid config. """
+    add_config({_test_configurable__valid_config: HParams(hparam='')})
+    _test_configurable__valid_config('arg', kwarg='')
+    assert logger_mock.warning.call_count == 0
 
 
 @mock.patch('hparams.hparams.logger')
@@ -687,7 +705,7 @@ def test_configurable__no_config(logger_mock):
 
 
 @mock.patch('hparams.hparams.logger')
-def test_configurable__override(logger_mock):
+def test_configurable__override_with_arg(logger_mock):
     """ Test if `@configurable` throws an error on a override of an `HParam` argument that's not
     configured.
     """
@@ -706,6 +724,25 @@ def test_configurable__override(logger_mock):
     configured('a')
     assert logger_mock.warning.call_count == 1
 
+@mock.patch('hparams.hparams.logger')
+def test_configurable__override_with_kwarg(logger_mock):
+    """ Test if `@configurable` throws an error on a override of an `HParam` argument that's not
+    configured.
+    """
+
+    @configurable
+    def configured(arg=HParam()):
+        return arg
+
+    add_config({configured: HParams()})
+
+    logger_mock.reset_mock()
+    configured(arg='a')
+    assert logger_mock.warning.call_count == 1
+
+    # It shouldn't throw a second warning
+    configured(arg='a')
+    assert logger_mock.warning.call_count == 1
 
 @mock.patch('hparams.hparams.logger')
 def test_configurable__empty_configuration_warnings(logger_mock):

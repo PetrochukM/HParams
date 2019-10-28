@@ -400,7 +400,7 @@ def clear_config():
     _configuration = {}
 
 
-def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_run):
+def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_name, is_first_run):
     """ Merge `func` `args` and `kwargs` with `default_kwargs`.
 
     The `_merge_args` prefers `kwargs` and `args` over `default_kwargs`.
@@ -409,6 +409,7 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
         parameters (list of inspect.Parameter): module that accepts `args` and `kwargs`
         args (list of any): Arguments accepted by `func`.
         kwargs (dict of any): Keyword arguments accepted by `func`.
+        config_kwargs (dict of any): Config keyword arguments accepted by `func` to merge.
         default_kwargs (dict of any): Default keyword arguments accepted by `func` to merge.
         print_name (str): Function name to print with warnings.
         is_first_run (bool): If `True` print warnings.
@@ -417,6 +418,7 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
         (dict): kwargs merging `args`, `kwargs`, and `default_kwargs`
     """
     merged_kwargs = default_kwargs.copy()
+    merged_kwargs.update(config_kwargs)
 
     # Delete `merged_kwargs` that conflict with `args`.
     # NOTE: Positional arguments must come before keyword arguments.
@@ -431,7 +433,8 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
                 parameters[i].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
             if parameters[i].name in merged_kwargs:
                 value = merged_kwargs[parameters[i].name]
-                if is_first_run:
+                if (is_first_run and
+                    (parameters[i].name in config_kwargs or isinstance(value, HParam))):
                     # TODO: These warnings should be done with `warnings.warn` based on this:
                     # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
                     logger.warning(
@@ -442,7 +445,8 @@ def _merge_args(parameters, args, kwargs, default_kwargs, print_name, is_first_r
 
     if is_first_run:
         for key, value in kwargs.items():
-            if key in merged_kwargs:
+            if (key in config_kwargs or
+                (key in merged_kwargs and isinstance(merged_kwargs[key], HParam))):
                 logger.warning(
                     '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
                     'with `%s`. This warning will not be repeated in this thread.', key,
@@ -488,11 +492,8 @@ def configurable(function=None):
                 '@configurable: No config for `%s`. '
                 'This warning will not be repeated in this thread.', function_print_name)
 
-        default_kwargs = function_default_kwargs.copy()
-        default_kwargs.update(config)
-
-        args, kwargs = _merge_args(function_parameters, args, kwargs, default_kwargs,
-                                   function_print_name, is_first_run)
+        args, kwargs = _merge_args(function_parameters, args, kwargs, config,
+                                   function_default_kwargs, function_print_name, is_first_run)
 
         # Ensure all `HParam` objects are overridden.
         [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, HParam)]
