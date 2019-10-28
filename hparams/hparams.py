@@ -433,8 +433,8 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
                 parameters[i].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
             if parameters[i].name in merged_kwargs:
                 value = merged_kwargs[parameters[i].name]
-                if (is_first_run and
-                    (parameters[i].name in config_kwargs or isinstance(value, HParam))):
+                if is_first_run and (parameters[i].name in config_kwargs or
+                                     isinstance(value, HParam)):
                     # TODO: These warnings should be done with `warnings.warn` based on this:
                     # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
                     logger.warning(
@@ -445,8 +445,8 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
 
     if is_first_run:
         for key, value in kwargs.items():
-            if (key in config_kwargs or
-                (key in merged_kwargs and isinstance(merged_kwargs[key], HParam))):
+            if key in config_kwargs or (key in merged_kwargs and
+                                        isinstance(merged_kwargs[key], HParam)):
                 logger.warning(
                     '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
                     'with `%s`. This warning will not be repeated in this thread.', key,
