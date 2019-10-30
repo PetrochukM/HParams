@@ -762,6 +762,23 @@ def test_configurable__empty_configuration_warnings(logger_mock):
     assert logger_mock.warning.call_count == 0
 
 
+@mock.patch('hparams.hparams.logger')
+def test_configurable__exposed_function(logger_mock):
+    """ Test if `@configurable` throws warnings if a configured function is run without its
+    decorator.
+    """
+
+    @configurable
+    def configured():
+        pass
+
+    add_config({configured: HParams()})
+
+    logger_mock.reset_mock()
+    configured.__wrapped__()
+    assert logger_mock.warning.call_count == 1
+
+
 def test_configurable__get_partial():
     """ Test if `@configurable#get_configured_partial` is able to export a partial with expected
     configuration.

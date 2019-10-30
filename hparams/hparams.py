@@ -456,6 +456,33 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
     return args, merged_kwargs
 
 
+def profile_func(frame, event, arg):
+    """ This `profile_func` is executed by `sys.setprofile`. It is used to warn the user if
+    a configured function is run without the decorator.
+
+    Args:
+        See docs for `sys.setprofile`.
+    """
+    if (event != 'call' or not hasattr(frame, 'f_code') or not hasattr(frame, 'f_back') or
+            not hasattr(frame.f_back, 'f_code') or frame.f_code not in _code_to_function):
+        return
+
+    function = _code_to_function[frame.f_code]
+    if not (__file__ == frame.f_back.f_code.co_filename and
+            frame.f_back.f_code.co_name == 'decorator'):
+        logger.warning(
+            '@configurable: `%s` was run without the decorator; '
+            'therefore, it\'s `HParams` were not injected. '
+            'Try reimporting the function after calling `add_config`.',
+            _get_function_print_name(function))
+
+
+sys.setprofile(profile_func)
+
+
+_code_to_function = {}  # Reverse lookup from `function.__code__` to `function`.
+
+
 def configurable(function=None):
     """ Decorator enables configuring module arguments.
 
@@ -471,6 +498,7 @@ def configurable(function=None):
     if not function:
         return configurable
 
+    # TODO: This may grow in memory if functions are dynamically created and deleted.
     function_signature = _get_function_signature(function)
     function_print_name = _get_function_print_name(function)
     function_parameters = list(_get_function_parameters(function).values())
@@ -512,6 +540,14 @@ def configurable(function=None):
 
     # Add a flag to the func; enabling us to check if a function has the configurable decorator.
     decorator._configurable = True
+
+    if hasattr(function, '__code__'):
+        _code_to_function[function.__code__] = function
+    else:
+        logger.warning(
+            '@configurable: `%s` does not have a `__code__` attribute; '
+            'therefore, this cannot verify if `HParams` are injected. '
+            'This should only affect Python `builtins`.', function_print_name)
 
     return decorator
 
