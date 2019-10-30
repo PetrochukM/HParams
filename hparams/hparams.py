@@ -11,6 +11,7 @@ import itertools
 import logging
 import pprint
 import sys
+import warnings
 
 from typeguard import check_type
 
@@ -47,7 +48,7 @@ class HParam():
         # https://stackoverflow.com/questions/21887091/cant-dynamically-bind-repr-str-to-a-class-created-with-type
         # https://stackoverflow.com/questions/1418825/where-is-the-python-documentation-for-the-special-methods-init-new
         for attribute in [
-                '__str__', '__repr__', '__contains__', '__hash__', '__len__', '__call__', '__add__',
+                '__contains__', '__hash__', '__len__', '__call__', '__add__',
                 '__sub__', '__mul__', '__floordiv__', '__div__', '__mod__', '__pow__', '__lshift__',
                 '__rshift__', '__and__', '__xor__', '__or__', '__iadd__', '__isub__', '__imul__',
                 '__idiv__', '__ifloordiv__', '__imod__', '__ipow__', '__ilshift__', '__irshift__',
@@ -66,8 +67,6 @@ class HParam():
         if name in ['error_message', '_raise', '__dict__', '__class__', 'type']:
             return super().__getattribute__(name)
         self._raise()
-
-
 
 @lru_cache()
 def _get_function_signature(func):
@@ -394,7 +393,7 @@ def clear_config():
     _configuration = {}
 
 
-def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_name, is_first_run):
+def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_name):
     """ Merge `func` `args` and `kwargs` with `default_kwargs`.
 
     The `_merge_args` prefers `kwargs` and `args` over `default_kwargs`.
@@ -406,7 +405,6 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
         config_kwargs (dict of any): Config keyword arguments accepted by `func` to merge.
         default_kwargs (dict of any): Default keyword arguments accepted by `func` to merge.
         print_name (str): Function name to print with warnings.
-        is_first_run (bool): If `True` print warnings.
 
     Returns:
         (dict): kwargs merging `args`, `kwargs`, and `default_kwargs`
@@ -427,24 +425,19 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
                 parameters[i].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
             if parameters[i].name in merged_kwargs:
                 value = merged_kwargs[parameters[i].name]
-                if is_first_run and (parameters[i].name in config_kwargs or
-                                     isinstance(value, HParam)):
-                    # TODO: These warnings should be done with `warnings.warn` based on this:
+                if parameters[i].name in config_kwargs or isinstance(value, HParam):
+                    # NOTE: This uses ``warnings`` based on these guidelines:
                     # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
-                    logger.warning(
+                    warnings.warn(
                         '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
-                        'with `%s`. This warning will not be repeated in this thread.',
-                        parameters[i].name, value, print_name, arg)
+                        'with `%s`.' % (parameters[i].name, str(value), print_name, arg))
                 del merged_kwargs[parameters[i].name]
 
-    if is_first_run:
-        for key, value in kwargs.items():
-            if key in config_kwargs or (key in merged_kwargs and
-                                        isinstance(merged_kwargs[key], HParam)):
-                logger.warning(
-                    '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
-                    'with `%s`. This warning will not be repeated in this thread.', key,
-                    merged_kwargs[key], print_name, value)
+    for key, value in kwargs.items():
+        if key in config_kwargs or (key in merged_kwargs and
+                                    isinstance(merged_kwargs[key], HParam)):
+            warnings.warn('@configurable: Overwriting configured argument `%s=%s` in module `%s` '
+                          'with `%s`.' % (key, str(merged_kwargs[key]), print_name, value))
 
     merged_kwargs.update(kwargs)
     return args, merged_kwargs
@@ -464,10 +457,10 @@ def profile_func(frame, event, arg):
     function = _code_to_function[frame.f_code]
     last_filename = frame.f_back.f_code.co_filename
     if not (__file__ == last_filename and frame.f_back.f_code.co_name == 'decorator'):
-        logger.warning(
+        warnings.warn(
             '@configurable: The decorator was not executed immediately before `%s` at (%s:%s); '
-            'therefore, it\'s `HParams` may not have been injected. ',
-            _get_function_signature(function), last_filename, frame.f_back.f_lineno)
+            'therefore, it\'s `HParams` may not have been injected. ' %
+            (_get_function_signature(function), last_filename, frame.f_back.f_lineno))
 
 
 sys.setprofile(profile_func)
@@ -494,7 +487,6 @@ def configurable(function=None):
     function_signature = _get_function_signature(function)
     function_parameters = list(_get_function_parameters(function).values())
     function_default_kwargs = _get_function_default_kwargs(function)
-    is_first_run = True
 
     def _get_configuration():
         return _configuration[function_signature] if function_signature in _configuration else {}
@@ -502,23 +494,17 @@ def configurable(function=None):
     @wraps(function)
     def decorator(*args, **kwargs):
         global _configuration
-        nonlocal is_first_run
 
         # Get the function configuration
         config = _get_configuration()
-        if is_first_run and function_signature not in _configuration:
-            logger.warning(
-                '@configurable: No config for `%s`. '
-                'This warning will not be repeated in this thread.', function_signature)
+        if function_signature not in _configuration:
+            warnings.warn('@configurable: No config for `%s`. ' % (function_signature,))
 
         args, kwargs = _merge_args(function_parameters, args, kwargs, config,
-                                   function_default_kwargs, function_signature, is_first_run)
+                                   function_default_kwargs, function_signature)
 
         # Ensure all `HParam` objects are overridden.
         [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, HParam)]
-
-        if is_first_run:
-            is_first_run = False
 
         return function(*args, **kwargs)
 

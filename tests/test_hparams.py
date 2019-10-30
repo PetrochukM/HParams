@@ -37,9 +37,6 @@ def test_hparam():
     arg = HParam()
 
     with pytest.raises(ValueError):
-        str(arg)
-
-    with pytest.raises(ValueError):
         arg.test
 
     with pytest.raises(ValueError):
@@ -56,9 +53,6 @@ def test_hparam():
 
     with pytest.raises(ValueError):
         len(arg)
-
-    with pytest.raises(ValueError):
-        repr(arg)
 
     with pytest.raises(ValueError):
         arg + 1
@@ -240,11 +234,13 @@ def test__resolve_configuration__multiple_sys_path():
 
 def test__resolve_configuration__built_in_function():
     """ Test resolution for an built in function. """
+    original = builtins.open
     builtins.open = configurable(builtins.open)
     function_name = 'builtins.open'
     parsed = _parse_configuration({function_name: HParams()})
     function_signature = _get_function_signature(builtins.open.__wrapped__)
     assert isinstance(_resolve_configuration(parsed)[function_signature], HParams)
+    builtins.open = original
 
 
 def test__resolve_configuration__internal_class():
@@ -578,38 +574,44 @@ def test_parse_hparam_args__no_hparams():
         parse_hparam_args(hparam_args)
 
 
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_merge_arg_kwarg(logger_mock):
+def test_merge_arg_kwarg(logger_mock, warnings_mock):
     """ Test `_merge_args` under the basic case with one argument and one keyword argument.
     """
     lambda_ = lambda a, b='abc': (a, b)
     parameters = list(inspect.signature(lambda_).parameters.values())
 
     # Prefer `args` over `other_kwargs`
-    merged = _merge_args(parameters, ['a', 'abc'], {}, {'b': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a', 'abc'], {}, {'b': 'xyz'}, {}, '')
     assert merged == (['a', 'abc'], {})
-    assert logger_mock.warning.call_count == 1
-    logger_mock.reset_mock()
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
+    warnings_mock.reset_mock()
 
     # Prefer `kwargs` over `other_kwargs`
-    merged = _merge_args(parameters, ['a'], {'b': 'abc'}, {'b': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a'], {'b': 'abc'}, {'b': 'xyz'}, {}, '')
     assert merged == (['a'], {'b': 'abc'})
-    assert logger_mock.warning.call_count == 1
-    logger_mock.reset_mock()
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
+    warnings_mock.reset_mock()
 
     # Prefer `other_kwargs` over default argument
-    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, {'b': 'abc'}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, {'b': 'abc'}, '')
     assert merged == (['a'], {'b': 'xyz'})
-    logger_mock.warning.assert_not_called()
+    warnings_mock.warn.assert_not_called()
+    warnings_mock.warn.assert_not_called()
 
     # Prefer default argument over nothing
-    merged = _merge_args(parameters, ['a'], {}, {}, {'b': 'abc'}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {}, {'b': 'abc'}, '')
     assert merged == (['a'], {'b': 'abc'})
-    logger_mock.warning.assert_not_called()
+    warnings_mock.warn.assert_not_called()
+    warnings_mock.warn.assert_not_called()
 
 
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_merge_arg_variable(logger_mock):
+def test_merge_arg_variable(logger_mock, warnings_mock):
     """ For arguments, order matters; therefore, unless we are able to abstract everything into a
     keyword argument, we have to keep the `args` the same.
 
@@ -624,44 +626,47 @@ def test_merge_arg_variable(logger_mock):
     lambda_ = lambda a, *args, b='abc': (a, args, b)
     parameters = list(inspect.signature(lambda_).parameters.values())
 
-    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'b': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'b': 'xyz'}, {}, '')
     assert merged == (['a', 'b', 'c'], {'b': 'xyz'})
     logger_mock.warning.assert_not_called()
-    logger_mock.reset_mock()
+    warnings_mock.warn.assert_not_called()
 
-    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'a': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a', 'b', 'c'], {}, {'a': 'xyz'}, {}, '')
     assert merged == (['a', 'b', 'c'], {})
-    assert logger_mock.warning.call_count == 1
-    logger_mock.reset_mock()
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
+    warnings_mock.reset_mock()
 
     # More arguments than parameters
-    merged = _merge_args(parameters, ['a', 'b', 'c', 'd', 'e', 'g'], {}, {'a': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a', 'b', 'c', 'd', 'e', 'g'], {}, {'a': 'xyz'}, {}, '')
     assert merged == (['a', 'b', 'c', 'd', 'e', 'g'], {})
-    assert logger_mock.warning.call_count == 1
-    logger_mock.reset_mock()
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
 
 
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_merge_kwarg_variable(logger_mock):
+def test_merge_kwarg_variable(logger_mock, warnings_mock):
     """ Test `_merge_args` under the basic case with a variable keyword argument.
     """
     lambda_ = lambda a, b, **kwargs: (a, b, kwargs)
     parameters = list(inspect.signature(lambda_).parameters.values())
 
-    merged = _merge_args(parameters, ['a', 'b'], {}, {'b': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a', 'b'], {}, {'b': 'xyz'}, {}, '')
     assert merged == (['a', 'b'], {})
-    assert logger_mock.warning.call_count == 1
-    logger_mock.reset_mock()
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
+    warnings_mock.reset_mock()
 
-    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, {}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz'}, {}, '')
     assert merged == (['a'], {'b': 'xyz'})
     logger_mock.warning.assert_not_called()
-    logger_mock.reset_mock()
+    warnings_mock.warn.assert_not_called()
 
-    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz', 'c': 'abc'}, {}, '', True)
+    merged = _merge_args(parameters, ['a'], {}, {'b': 'xyz', 'c': 'abc'}, {}, '')
     assert merged == (['a'], {'b': 'xyz', 'c': 'abc'})
     logger_mock.warning.assert_not_called()
-    logger_mock.reset_mock()
+    warnings_mock.warn.assert_not_called()
 
 
 def test_merge_args__too_many_args():
@@ -670,7 +675,7 @@ def test_merge_args__too_many_args():
 
     # Test too many arguments passed
     with pytest.raises(TypeError):
-        _merge_args(parameters, ['a', 'abc', 'one too many'], {}, {'b': 'xyz'}, '', True)
+        _merge_args(parameters, ['a', 'abc', 'one too many'], {}, {'b': 'xyz'}, '')
 
 
 @configurable
@@ -678,16 +683,18 @@ def _test_configurable__valid_config(arg, *args, kwarg=None, hparam=HParam(), **
     pass
 
 
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_configurable__regression_overriding(logger_mock):
+def test_configurable__regression_overriding(logger_mock, warnings_mock):
     """ Test `@configurable` that there are no warnings with a valid config. """
     add_config({_test_configurable__valid_config: HParams(hparam='')})
     _test_configurable__valid_config('arg', kwarg='')
     assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 0
 
-
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_configurable__no_config(logger_mock):
+def test_configurable__no_config(logger_mock, warnings_mock):
     """ Test `@configurable` if there is a warning for a missing configuration. """
 
     @configurable
@@ -695,17 +702,13 @@ def test_configurable__no_config(logger_mock):
         pass
 
     configured()
-    assert logger_mock.warning.call_count == 1
-    logger_mock.reset_mock()
-
-    # Test that the the warning is only called the first time.
-    configured()
-    logger_mock.warning.assert_not_called()
-    logger_mock.reset_mock()
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
 
 
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_configurable__override_with_arg(logger_mock):
+def test_configurable__override_with_arg(logger_mock, warnings_mock):
     """ Test if `@configurable` throws an error on a override of an `HParam` argument that's not
     configured.
     """
@@ -717,16 +720,16 @@ def test_configurable__override_with_arg(logger_mock):
     add_config({configured: HParams()})
 
     logger_mock.reset_mock()
+    warnings_mock.reset_mock()
     configured('a')
-    assert logger_mock.warning.call_count == 1
-
-    # It shouldn't throw a second warning
-    configured('a')
-    assert logger_mock.warning.call_count == 1
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
 
 
+
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_configurable__override_with_kwarg(logger_mock):
+def test_configurable__override_with_kwarg(logger_mock, warnings_mock):
     """ Test if `@configurable` throws an error on a override of an `HParam` argument that's not
     configured.
     """
@@ -738,16 +741,16 @@ def test_configurable__override_with_kwarg(logger_mock):
     add_config({configured: HParams()})
 
     logger_mock.reset_mock()
+    warnings_mock.reset_mock()
     configured(arg='a')
-    assert logger_mock.warning.call_count == 1
-
-    # It shouldn't throw a second warning
-    configured(arg='a')
-    assert logger_mock.warning.call_count == 1
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
 
 
+
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_configurable__empty_configuration_warnings(logger_mock):
+def test_configurable__empty_configuration_warnings(logger_mock, warnings_mock):
     """ Test if `@configurable` throws warnings for an empty configuration.
     """
 
@@ -758,12 +761,15 @@ def test_configurable__empty_configuration_warnings(logger_mock):
     add_config({configured: HParams()})
 
     logger_mock.reset_mock()
+    warnings_mock.reset_mock()
     configured()
     assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 0
 
 
+@mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
-def test_configurable__exposed_function(logger_mock):
+def test_configurable__exposed_function(logger_mock, warnings_mock):
     """ Test if `@configurable` throws warnings if a configured function is run without its
     decorator.
     """
@@ -775,8 +781,10 @@ def test_configurable__exposed_function(logger_mock):
     add_config({configured: HParams()})
 
     logger_mock.reset_mock()
+    warnings_mock.reset_mock()
     configured.__wrapped__()
-    assert logger_mock.warning.call_count == 1
+    assert logger_mock.warning.call_count == 0
+    assert warnings_mock.warn.call_count == 1
 
 
 def test_configurable__get_partial():
@@ -875,8 +883,9 @@ def test_configurable__benchmark():
         return decorator
 
     lambda_ = lambda arg: arg
+    other_lambda_ = lambda arg: arg
     native = baseline(lambda_)
-    configured = configurable(lambda_)
+    configured = configurable(other_lambda_)
 
     add_config({configured: HParams(arg='')})
 
@@ -886,15 +895,15 @@ def test_configurable__benchmark():
     gc.disable()
     iterator = itertools.repeat(None, samples)
     start = time.perf_counter()
-    for i in iterator:
+    for _ in iterator:
         native('')
     native_elapsed = time.perf_counter() - start
 
     iterator = itertools.repeat(None, samples)
     start = time.perf_counter()
-    for i in iterator:
-        configured('')
+    for _ in iterator:
+        configured()
     configured_elapsed = time.perf_counter() - start
     gc.enable()
 
-    assert (configured_elapsed / samples) - (native_elapsed / samples) < 1e-05
+    assert (configured_elapsed / samples) - (native_elapsed / samples) < 3e-05
