@@ -68,6 +68,7 @@ class HParam():
             return super().__getattribute__(name)
         self._raise()
 
+
 @lru_cache()
 def _get_function_signature(func):
     """ Get a unique signature for each function.

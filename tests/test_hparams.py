@@ -692,6 +692,7 @@ def test_configurable__regression_overriding(logger_mock, warnings_mock):
     assert logger_mock.warning.call_count == 0
     assert warnings_mock.warn.call_count == 0
 
+
 @mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
 def test_configurable__no_config(logger_mock, warnings_mock):
@@ -726,7 +727,6 @@ def test_configurable__override_with_arg(logger_mock, warnings_mock):
     assert warnings_mock.warn.call_count == 1
 
 
-
 @mock.patch('hparams.hparams.warnings')
 @mock.patch('hparams.hparams.logger')
 def test_configurable__override_with_kwarg(logger_mock, warnings_mock):
@@ -745,7 +745,6 @@ def test_configurable__override_with_kwarg(logger_mock, warnings_mock):
     configured(arg='a')
     assert logger_mock.warning.call_count == 0
     assert warnings_mock.warn.call_count == 1
-
 
 
 @mock.patch('hparams.hparams.warnings')
