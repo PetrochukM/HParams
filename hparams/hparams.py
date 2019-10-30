@@ -468,17 +468,16 @@ def profile_func(frame, event, arg):
         return
 
     function = _code_to_function[frame.f_code]
-    if not (__file__ == frame.f_back.f_code.co_filename and
-            frame.f_back.f_code.co_name == 'decorator'):
+    last_filename = frame.f_back.f_code.co_filename
+    if not (__file__ == last_filename and frame.f_back.f_code.co_name == 'decorator'):
         logger.warning(
-            '@configurable: `%s` was run without the decorator; '
+            '@configurable: `%s` was run without the decorator at (%s:%s); '
             'therefore, it\'s `HParams` were not injected. '
             'Try reimporting the function after calling `add_config`.',
-            _get_function_print_name(function))
+            _get_function_print_name(function), last_filename, frame.f_back.f_lineno)
 
 
 sys.setprofile(profile_func)
-
 
 _code_to_function = {}  # Reverse lookup from `function.__code__` to `function`.
 
