@@ -471,9 +471,8 @@ def profile_func(frame, event, arg):
     last_filename = frame.f_back.f_code.co_filename
     if not (__file__ == last_filename and frame.f_back.f_code.co_name == 'decorator'):
         logger.warning(
-            '@configurable: `%s` was run without the decorator at (%s:%s); '
-            'therefore, it\'s `HParams` were not injected. '
-            'Try reimporting the function after calling `add_config`.',
+            '@configurable: The decorator was not executed immediately before `%s` at (%s:%s); '
+            'therefore, it\'s `HParams` may not have been injected. ',
             _get_function_print_name(function), last_filename, frame.f_back.f_lineno)
 
 
