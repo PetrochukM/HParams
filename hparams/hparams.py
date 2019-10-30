@@ -68,12 +68,6 @@ class HParam():
         self._raise()
 
 
-@lru_cache()
-def _get_function_print_name(func):
-    """ Get a name for each function.
-    """
-    return inspect.getmodule(func).__name__.split('.')[-1] + '.' + func.__qualname__
-
 
 @lru_cache()
 def _get_function_signature(func):
@@ -147,7 +141,7 @@ def _function_has_keyword_parameters(func, kwargs):
         if not has_var_keyword and (kwarg not in parameters or
                                     parameters[kwarg].kind == inspect.Parameter.VAR_POSITIONAL):
             raise TypeError('Function `%s` does not accept configured parameter `%s`.' %
-                            (_get_function_print_name(func), kwarg))
+                            (_get_function_signature(func), kwarg))
 
         try:
             if (kwarg in parameters and parameters[kwarg].default is not inspect.Parameter.empty and
@@ -155,14 +149,14 @@ def _function_has_keyword_parameters(func, kwargs):
                 check_type(kwarg, kwargs[kwarg], parameters[kwarg].default.type)
         except TypeError:
             raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
-                            (_get_function_print_name(func), kwarg, parameters[kwarg].default.type))
+                            (_get_function_signature(func), kwarg, parameters[kwarg].default.type))
 
         try:
             if kwarg in type_hints:
                 check_type(kwarg, kwargs[kwarg], type_hints[kwarg])
         except TypeError:
             raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
-                            (_get_function_print_name(func), kwarg, type_hints[kwarg]))
+                            (_get_function_signature(func), kwarg, type_hints[kwarg]))
 
 
 def _resolve_configuration_helper(dict_, keys):
@@ -473,7 +467,7 @@ def profile_func(frame, event, arg):
         logger.warning(
             '@configurable: The decorator was not executed immediately before `%s` at (%s:%s); '
             'therefore, it\'s `HParams` may not have been injected. ',
-            _get_function_print_name(function), last_filename, frame.f_back.f_lineno)
+            _get_function_signature(function), last_filename, frame.f_back.f_lineno)
 
 
 sys.setprofile(profile_func)
@@ -498,7 +492,6 @@ def configurable(function=None):
 
     # TODO: This may grow in memory if functions are dynamically created and deleted.
     function_signature = _get_function_signature(function)
-    function_print_name = _get_function_print_name(function)
     function_parameters = list(_get_function_parameters(function).values())
     function_default_kwargs = _get_function_default_kwargs(function)
     is_first_run = True
@@ -516,10 +509,10 @@ def configurable(function=None):
         if is_first_run and function_signature not in _configuration:
             logger.warning(
                 '@configurable: No config for `%s`. '
-                'This warning will not be repeated in this thread.', function_print_name)
+                'This warning will not be repeated in this thread.', function_signature)
 
         args, kwargs = _merge_args(function_parameters, args, kwargs, config,
-                                   function_default_kwargs, function_print_name, is_first_run)
+                                   function_default_kwargs, function_signature, is_first_run)
 
         # Ensure all `HParam` objects are overridden.
         [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, HParam)]
@@ -545,7 +538,7 @@ def configurable(function=None):
         logger.warning(
             '@configurable: `%s` does not have a `__code__` attribute; '
             'therefore, this cannot verify if `HParams` are injected. '
-            'This should only affect Python `builtins`.', function_print_name)
+            'This should only affect Python `builtins`.', function_signature)
 
     return decorator
 
