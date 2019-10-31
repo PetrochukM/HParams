@@ -675,7 +675,7 @@ def test_merge_args__too_many_args():
 
     # Test too many arguments passed
     with pytest.raises(TypeError):
-        _merge_args(parameters, ['a', 'abc', 'one too many'], {}, {'b': 'xyz'}, '')
+        _merge_args(parameters, ['a', 'abc', 'one too many'], {}, {'b': 'xyz'}, {'b': 'abc'}, '')
 
 
 @configurable

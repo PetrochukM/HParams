@@ -443,7 +443,10 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
     return args, merged_kwargs
 
 
-def profile_func(frame, event, arg):
+# NOTE: `pytest` coverage module cannot track this code.
+
+
+def profile_func(frame, event, arg):  # pragma: no cover
     """ This `profile_func` is executed by `sys.setprofile`. It is used to warn the user if
     a configured function is run without the decorator.
 
