@@ -48,15 +48,14 @@ class HParam():
         # https://stackoverflow.com/questions/21887091/cant-dynamically-bind-repr-str-to-a-class-created-with-type
         # https://stackoverflow.com/questions/1418825/where-is-the-python-documentation-for-the-special-methods-init-new
         for attribute in [
-                '__contains__', '__hash__', '__len__', '__call__', '__add__',
-                '__sub__', '__mul__', '__floordiv__', '__div__', '__mod__', '__pow__', '__lshift__',
-                '__rshift__', '__and__', '__xor__', '__or__', '__iadd__', '__isub__', '__imul__',
-                '__idiv__', '__ifloordiv__', '__imod__', '__ipow__', '__ilshift__', '__irshift__',
-                '__iand__', '__ixor__', '__ior__', '__neg__', '__pos__', '__abs__', '__invert__',
-                '__complex__', '__int__', '__long__', '__float__', '__oct__', '__hex__', '__lt__',
-                '__le__', '__eq__', '__ne__', '__ge__', '__gt__', '__cmp__', '__round__',
-                '__getitem__', '__setitem__', '__delitem__', '__iter__', '__reversed__', '__copy__',
-                '__deepcopy__'
+                '__contains__', '__hash__', '__len__', '__call__', '__add__', '__sub__', '__mul__',
+                '__floordiv__', '__div__', '__mod__', '__pow__', '__lshift__', '__rshift__',
+                '__and__', '__xor__', '__or__', '__iadd__', '__isub__', '__imul__', '__idiv__',
+                '__ifloordiv__', '__imod__', '__ipow__', '__ilshift__', '__irshift__', '__iand__',
+                '__ixor__', '__ior__', '__neg__', '__pos__', '__abs__', '__invert__', '__complex__',
+                '__int__', '__long__', '__float__', '__oct__', '__hex__', '__lt__', '__le__',
+                '__eq__', '__ne__', '__ge__', '__gt__', '__cmp__', '__round__', '__getitem__',
+                '__setitem__', '__delitem__', '__iter__', '__reversed__', '__copy__', '__deepcopy__'
         ]:
             setattr(self.__class__, attribute, self._raise)
 
