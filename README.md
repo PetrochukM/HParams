@@ -47,8 +47,8 @@ or error if:
 - A hyperparameter is set but not declared.
 - A hyperparameter type is incorrect.
 
-Finally, HParams is built with developer experience in mind. The errors thrown by HParams
-are verbose to ensure a swift resolution.
+Finally, HParams is built with developer experience in mind. HParams includes 13 errors and 6 warnings
+to help catch and resolve issues quickly.
 
 ## Examples
 
