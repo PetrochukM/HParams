@@ -9,7 +9,7 @@ These are the differences:
     therefore, HParams is less complex and more thoroughly tested.
 - `HParams` publishes it's build status and code coverage.
 - `HParams` is focused on Python while instead of a new `gin` language.
-- `HParams` is framework independent while `gin` prioritizes Tensorflow.
+- `HParams` is framework independent while `gin-config` prioritizes Tensorflow.
 - `HParams` supports type checking.
 
 #### Cons
