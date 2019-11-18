@@ -355,7 +355,6 @@ def test__resolve_configuration__import_error(warnings_mock):
     assert warnings_mock.warn.call_count == 1
 
 
-
 @mock.patch('hparams.hparams.warnings')
 def test__resolve_configuration__no_decorator(warnings_mock):
     """ Test resolution for a function that is not decorated. """
@@ -873,6 +872,7 @@ def test__configurable__regression(warnings_mock):
 
     add_config({_test__resolve_configuration__super_class.__init__: HParams()})
     assert warnings_mock.warn.call_count == 1
+
 
 def test_configurable__benchmark():
     """ Test if `@configurable` is within the ballpark of a native decorator in performance. """
