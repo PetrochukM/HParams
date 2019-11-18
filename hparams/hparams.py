@@ -223,8 +223,11 @@ def _resolve_configuration_helper(dict_, keys):
 
     trace.reverse()
 
-    raise TypeError('Failed to find `configurable` decorator along path `%s`.\n' % '.'.join(keys) +
-                    'Attempts (most recent attempt last):\n  %s' % ('\n  '.join(trace),))
+    warnings.warn('Skipping configuration for `%s` because this ' % '.'.join(keys) +
+                  'failed to find a `configurable` decorator for that configuration.\n' +
+                  'Attempts (most recent attempt last):\n  %s' % ('\n  '.join(trace),))
+
+    return {}
 
 
 def _resolve_configuration(dict_):

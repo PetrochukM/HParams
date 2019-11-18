@@ -332,11 +332,12 @@ def test__resolve_configuration__duplicate():
     sys.path.pop(0)
 
 
-def test__resolve_configuration__attribute_error():
+@mock.patch('hparams.hparams.warnings')
+def test__resolve_configuration__attribute_error(warnings_mock):
     """ Test resolution for an none-existant function in an existing module. """
     parsed = _parse_configuration({'pytest.abcdefghijklmnopqrstuvwxyz': HParams()})
-    with pytest.raises(TypeError):
-        _resolve_configuration(parsed)
+    _resolve_configuration(parsed)
+    assert warnings_mock.warn.call_count == 1
 
 
 def test__resolve_configuration__wrong_arguments():
@@ -346,18 +347,21 @@ def test__resolve_configuration__wrong_arguments():
         _resolve_configuration(parsed)
 
 
-def test__resolve_configuration__import_error():
+@mock.patch('hparams.hparams.warnings')
+def test__resolve_configuration__import_error(warnings_mock):
     """ Test resolution for an none-existant module. """
     parsed = _parse_configuration({'abcdefghijklmnopqrstuvwxyz': HParams()})
-    with pytest.raises(TypeError):
-        _resolve_configuration(parsed)
+    _resolve_configuration(parsed)
+    assert warnings_mock.warn.call_count == 1
 
 
-def test__resolve_configuration__no_decorator():
+
+@mock.patch('hparams.hparams.warnings')
+def test__resolve_configuration__no_decorator(warnings_mock):
     """ Test resolution for a function that is not decorated. """
     parsed = _parse_configuration({test__resolve_configuration__no_decorator: HParams()})
-    with pytest.raises(TypeError):
-        _resolve_configuration(parsed)
+    _resolve_configuration(parsed)
+    assert warnings_mock.warn.call_count == 1
 
 
 def test__resolve_configuration__no_configuration():
@@ -857,7 +861,8 @@ class _test__resolve_configuration__super_class(__test__resolve_configuration__s
     pass
 
 
-def test__configurable__regression():
+@mock.patch('hparams.hparams.warnings')
+def test__configurable__regression(warnings_mock):
     """ Test if `@configurable` fails with a none-overridden `__init__` function for a global class.
 
     TODO: Support this use case. Curiously, this works for none-global classes though.
@@ -866,9 +871,8 @@ def test__configurable__regression():
     _test__resolve_configuration__super_class.__init__ = configurable(
         _test__resolve_configuration__super_class.__init__)
 
-    with pytest.raises(TypeError):
-        add_config({_test__resolve_configuration__super_class.__init__: HParams()})
-
+    add_config({_test__resolve_configuration__super_class.__init__: HParams()})
+    assert warnings_mock.warn.call_count == 1
 
 def test_configurable__benchmark():
     """ Test if `@configurable` is within the ballpark of a native decorator in performance. """
