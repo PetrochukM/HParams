@@ -39,11 +39,10 @@ class HParam():
     """
 
     def __init__(self, type_=Any):
-        lineno = inspect.stack()[1].lineno  # Ge the caller line number
-        filename = inspect.stack()[1].filename
+        stack = inspect.stack()[1] # Get the caller line number
         self.type = type_
         self.error_message = 'The parameter set to `HParam` at %s:%s must be configured.' % (
-            filename, lineno)
+            stack.filename, stack.lineno)
         # Learn more about special methods:
         # https://stackoverflow.com/questions/21887091/cant-dynamically-bind-repr-str-to-a-class-created-with-type
         # https://stackoverflow.com/questions/1418825/where-is-the-python-documentation-for-the-special-methods-init-new
