@@ -39,11 +39,10 @@ class HParam():
     """
 
     def __init__(self, type_=Any):
-        lineno = inspect.stack()[1].lineno  # Ge the caller line number
-        filename = inspect.stack()[1].filename
+        stack = inspect.stack(0)[1]  # Get the caller line number
         self.type = type_
         self.error_message = 'The parameter set to `HParam` at %s:%s must be configured.' % (
-            filename, lineno)
+            stack.filename, stack.lineno)
         # Learn more about special methods:
         # https://stackoverflow.com/questions/21887091/cant-dynamically-bind-repr-str-to-a-class-created-with-type
         # https://stackoverflow.com/questions/1418825/where-is-the-python-documentation-for-the-special-methods-init-new
@@ -158,6 +157,9 @@ def _function_has_keyword_parameters(func, kwargs):
                             (_get_function_signature(func), kwarg, type_hints[kwarg]))
 
 
+_skip_resolution = []
+
+
 def _resolve_configuration_helper(dict_, keys):
     """ Recursive helper of `_resolve_configuration`.
 
@@ -193,10 +195,19 @@ def _resolve_configuration_helper(dict_, keys):
         raise TypeError('Failed to find `HParams` object along path `%s`.' % '.'.join(keys))
 
     trace = []
-    for i in reversed(range(1, len(keys))):
+    for i in range(1, len(keys)):
         try:
             module_path = '.'.join(keys[:i])
-            attribute = import_module(module_path)
+
+            if _is_lazy_resolution:
+                # NOTE: If the module is not already loaded, then skip this resolution for now.
+                attribute = sys.modules.get(module_path, None)
+                if attribute is None:
+                    _skip_resolution.append((dict_, keys[:]))
+                    return {}
+            else:
+                attribute = import_module(module_path)
+
             for j, key in enumerate(keys[i:]):
                 # NOTE: `__qualname__` uses `<locals>` and `<lambdas>` for function naming.
                 # Learn more: https://www.python.org/dev/peps/pep-3155/
@@ -206,6 +217,8 @@ def _resolve_configuration_helper(dict_, keys):
                     signature = (_get_function_signature(attribute) + '.' + '.'.join(keys[i:][j:]))
                     return {signature: dict_}
                 else:
+                    # NOTE: This will fail if `key` is a module that has not yet been imported
+                    # and `attribute` is a package.
                     attribute = getattr(attribute, key)
             if hasattr(attribute, '_configurable'):
                 # Check all keyword arguments (`dict_`) are defined in function.
@@ -216,6 +229,8 @@ def _resolve_configuration_helper(dict_, keys):
                 return {_get_function_signature(attribute.__wrapped__): dict_}
             else:
                 trace.append('`%s` is not decorated with `configurable`.' % '.'.join(keys))
+        # TODO: Instead of the generic `ImportError` consider a the more specific
+        # `ModuleNotFoundError` introduced in Python 3.6
         except ImportError:
             trace.append('ImportError: Failed to run `import %s`.' % module_path)
         except AttributeError:
@@ -248,6 +263,33 @@ def _resolve_configuration(dict_):
         dict: Each key is a function signature and each value is an `HParams` object.
     """
     return _resolve_configuration_helper(dict_, [])
+
+
+def _resolve_skipped():
+    """ Invoke resolution for skipped configuration paths.
+    """
+    # NOTE: `_resolve_configuration_helper` adds more items to `_skip_resolution`, this ensures
+    # that those items are ignored.
+    global _skip_resolution
+    copy_skip_resolution = _skip_resolution.copy()
+    _skip_resolution = []
+
+    for args in copy_skip_resolution:
+        resolved = _resolve_configuration_helper(*args)
+        _add_resolved_config(resolved)
+
+
+def _add_resolved_config(resolved):
+    """ Add to `configuration` a resolved configuration from `_resolve_configuration`.
+
+    Args:
+        resolved (dict): Each key is a function signature and each value is an `HParams` object.
+    """
+    for key in resolved:
+        if key in _configuration:
+            _configuration[key].update(resolved[key])
+        else:
+            _configuration[key] = resolved[key]
 
 
 def _parse_configuration_helper(dict_, parsed_dict):
@@ -355,18 +397,11 @@ def add_config(config):
         [[1,
           2]]
     """
-    global _configuration
-
     if len(config) == 0:
         return
-
     parsed = _parse_configuration(config)
     resolved = _resolve_configuration(parsed)
-    for key in resolved:
-        if key in _configuration:
-            _configuration[key].update(resolved[key])
-        else:
-            _configuration[key] = resolved[key]
+    _add_resolved_config(resolved)
 
 
 def log_config():
@@ -383,6 +418,10 @@ def get_config():
     Returns:
         (dict): The current configuration.
     """
+    if _is_lazy_resolution and len(_skip_resolution) > 0:
+        logger.warning(
+            'There are unresolved configurations because lazy resolution was set to `True`; '
+            'therefore, this will only return a partial config.')
     return _configuration
 
 
@@ -394,6 +433,23 @@ def clear_config():
     """
     global _configuration
     _configuration = {}
+
+
+_is_lazy_resolution = False
+
+
+def set_lazy_resolution(bool_):
+    """ Set `HParams` to resolve configurations during when a configured function
+    is executed instead of when `add_config` is executed.
+
+    This lazy resolution ensures that no modules are imported that are not.
+
+    Args:
+        bool_ (bool): If `True` the configurations are resolved and checked lazily.
+    """
+    global _is_lazy_resolution
+    _is_lazy_resolution = bool_
+    _resolve_skipped()
 
 
 def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_name):
@@ -500,6 +556,8 @@ def configurable(function=None):
     @wraps(function)
     def decorator(*args, **kwargs):
         global _configuration
+
+        _resolve_skipped()
 
         # Get the function configuration
         config = _get_configuration()

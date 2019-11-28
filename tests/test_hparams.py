@@ -28,6 +28,7 @@ from hparams.hparams import HParam
 from hparams.hparams import HParams
 from hparams.hparams import log_config
 from hparams.hparams import parse_hparam_args
+from hparams.hparams import set_lazy_resolution
 
 import hparams
 
@@ -496,7 +497,6 @@ def test_config_operators():
     def configured(arg):
         pass
 
-    clear_config()
     assert len(get_config()) == 0
     add_config({configured: HParams()})
     log_config()  # Smoke test
@@ -517,7 +517,6 @@ def test_merge_configs():
     def other_configured(arg):
         pass
 
-    clear_config()
     add_config({configured: HParams(arg='arg', arg_two='arg_two')})
     add_config({other_configured: HParams()})
     assert len(get_config()) == 2
@@ -526,7 +525,6 @@ def test_merge_configs():
     assert len(get_config()) == 2
     assert get_config()[_get_function_signature(configured.__wrapped__)]['arg'] == 'gra'
     assert get_config()[_get_function_signature(configured.__wrapped__)]['arg_two'] == 'arg_two'
-    clear_config()
 
 
 def test_parse_hparam_args__decimal():
@@ -805,7 +803,9 @@ def test_configurable__get_partial():
 
 
 def test_configurable__double_invoke():
-    """ Test if `@configurable` can be called with no arguments. """
+    """ Test if `@configurable` can be called with no arguments and
+    `@configurable` can be called.
+    """
 
     @configurable()
     def configured(arg):
@@ -814,6 +814,32 @@ def test_configurable__double_invoke():
     expected = ''
     add_config({configured: HParams(arg=expected)})
     assert configured() == expected
+
+
+@mock.patch('hparams.hparams.logger')
+def test_set_lazy_resolution(logger_mock):
+    """ Test if `@configurable` can resolve it's configuration lazily.
+    Also, test if `get_config` only lazily returns the configuration.
+
+    This test combines multiple tests because Python does not support unloading a module:
+    https://stackoverflow.com/questions/8781257/remove-an-imported-python-module
+
+    TODO: This doesn't set `set_lazy_resolution(False)` which forces a resolution for any unresolved
+    modules. In order to add more tests like so, we'd need to create more modules.
+    """
+    set_lazy_resolution(True)
+
+    expected = ''
+    add_config({'_tests.other_module.configured': HParams(arg=expected)})
+
+    assert {} == get_config()
+    assert logger_mock.warning.call_count == 1
+    logger_mock.reset_mock()
+
+    from _tests.other_module import configured
+    assert configured() == expected
+    assert len(get_config()) == 1
+    assert logger_mock.warning.call_count == 0
 
 
 def test_configurable__unused_hparam():
@@ -845,7 +871,6 @@ def test_configurable__unwrap():
 
 def test_add_config__empty():
     """ Test if `add_config` works with an empty config. """
-    clear_config()
     add_config({})
     assert {} == get_config()
 
