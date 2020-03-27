@@ -74,8 +74,17 @@ def test__get_function_signature__no_sys_path():
     """ Test to ensure that `_get_function_signature` can handle an absolute path. """
     original = sys.path
     sys.path = []
-    assert 'tests.test_hparams.test__get_function_signature' in _get_function_signature(
-        test__get_function_signature__no_sys_path)
+    assert 'tests.test_hparams.test__get_function_signature__no_sys_path' in (
+        _get_function_signature(test__get_function_signature__no_sys_path))
+    sys.path = original
+
+
+def test__get_function_signature__relative_sys_path():
+    """ Test to ensure that `_get_function_signature` can handle an relatie path. """
+    original = sys.path
+    sys.path = ['']
+    assert 'tests.test_hparams.test__get_function_signature__relative_sys_path' == (
+        _get_function_signature(test__get_function_signature__relative_sys_path))
     sys.path = original
 
 

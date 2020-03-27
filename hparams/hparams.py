@@ -84,7 +84,7 @@ def _get_function_signature(func):
         relative_filename = None
         for path in sys.path:
             try:
-                new_filename = str(absolute_filename.relative_to(Path(path)))
+                new_filename = str(absolute_filename.relative_to(Path(path).absolute()))
                 if relative_filename is None:
                     relative_filename = new_filename
                 elif len(new_filename) > len(relative_filename):
