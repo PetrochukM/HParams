@@ -17,6 +17,7 @@ from hparams.hparams import _function_has_keyword_parameters
 from hparams.hparams import _get_function_default_kwargs
 from hparams.hparams import _get_function_path
 from hparams.hparams import _get_function_signature
+from hparams.hparams import _get_skip_resolution
 from hparams.hparams import _merge_args
 from hparams.hparams import _parse_configuration
 from hparams.hparams import _resolve_configuration
@@ -843,12 +844,18 @@ def test_set_lazy_resolution(logger_mock):
 
     assert {} == get_config()
     assert logger_mock.warning.call_count == 1
+    assert len(_get_skip_resolution()) == 1
     logger_mock.reset_mock()
+
+    # NOTE: Test multiple similar config calls
+    add_config({'_tests.other_module.configured': HParams(arg=expected)})
+    assert len(_get_skip_resolution()) == 1
 
     from _tests.other_module import configured
     assert configured() == expected
     assert len(get_config()) == 1
     assert logger_mock.warning.call_count == 0
+    assert len(_get_skip_resolution()) == 0
 
 
 def test_configurable__unused_hparam():

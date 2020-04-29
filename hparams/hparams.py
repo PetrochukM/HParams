@@ -158,7 +158,11 @@ def _function_has_keyword_parameters(func, kwargs):
                             (_get_function_signature(func), kwarg, type_hints[kwarg]))
 
 
-_skip_resolution = []
+_skip_resolution = {}
+
+def _get_skip_resolution():
+    """ Helper function for testing `_skip_resolution`. """
+    return _skip_resolution
 
 
 def _resolve_configuration_helper(dict_, keys):
@@ -204,7 +208,7 @@ def _resolve_configuration_helper(dict_, keys):
                 # NOTE: If the module is not already loaded, then skip this resolution for now.
                 attribute = sys.modules.get(module_path, None)
                 if attribute is None:
-                    _skip_resolution.append((dict_, keys[:]))
+                    _skip_resolution[tuple(keys[:])] = dict_
                     return {}
             else:
                 attribute = import_module(module_path)
@@ -273,10 +277,10 @@ def _resolve_skipped():
     # that those items are ignored.
     global _skip_resolution
     copy_skip_resolution = _skip_resolution.copy()
-    _skip_resolution = []
+    _skip_resolution = {}
 
-    for args in copy_skip_resolution:
-        resolved = _resolve_configuration_helper(*args)
+    for keys, dict_ in copy_skip_resolution.items():
+        resolved = _resolve_configuration_helper(dict_, list(keys))
         _add_resolved_config(resolved)
 
 
