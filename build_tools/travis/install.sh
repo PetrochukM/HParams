@@ -21,4 +21,4 @@ fi
 # TODO: Add a script similar to RTD to test locally with virtual environment
 
 # Install requirements via pip
-pip install -r requirements.txt --progress-bar off
+pip install -U -r requirements.txt --progress-bar off
