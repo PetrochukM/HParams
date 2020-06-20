@@ -160,6 +160,7 @@ def _function_has_keyword_parameters(func, kwargs):
 
 _skip_resolution = {}
 
+
 def _get_skip_resolution():
     """ Helper function for testing `_skip_resolution`. """
     return _skip_resolution
