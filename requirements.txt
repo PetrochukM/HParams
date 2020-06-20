@@ -8,7 +8,7 @@
 # Testing + Code Coverage
 codecov
 coverage
-pytest>=3.6
+pytest
 pytest-cov
 
 # Linting
