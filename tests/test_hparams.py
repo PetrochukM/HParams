@@ -1,5 +1,4 @@
 from functools import wraps
-from typing import Union
 from unittest import mock
 
 import builtins
