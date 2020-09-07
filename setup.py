@@ -59,6 +59,9 @@ setup_info = dict(
 
     # Package info
     packages=find_packages(exclude=['tests']),
+    package_data={
+        'hparams': ['py.typed'],
+    },
     zip_safe=True)
 
 setup(**setup_info)
