@@ -15,7 +15,7 @@ Warnings:
 
   - Runs `logging.warning` if the function has not been configured.
   - Runs `logging.warning` if the function configuration will be overridden by arguments passed to the
-    function. 
+    function.
 
 Raises:
 
@@ -104,7 +104,7 @@ Get the current global configuration.
 
 Anti-patterns:
 
-  - Using the return value of this function to set the configuration with `add_config`. 
+  - Using the return value of this function to set the configuration with `add_config`.
     That will introduce unnecessary coupling and complexity that this module is designed
     to avoid.
 
@@ -172,4 +172,4 @@ Raises:
 
   - `ValueError` if this object is used to execute anything. This object should be overridden by
     a hyperparameter during runtime.
- 
+

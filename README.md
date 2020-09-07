@@ -64,7 +64,7 @@ from hparams import configurable, add_config, HParams, HParam
 from typing import Union
 
 @configurable
-def train(batch_size: Union[int, HParam]=HParam()):
+def train(batch_size: int = HParam()):
     pass
 
 class Model():

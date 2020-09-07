@@ -25,7 +25,10 @@ class HParams(dict):
     pass
 
 
-class HParam():
+_HParamReturnType = typing.TypeVar('_HParamReturnType')
+
+
+class _HParam():
     """ Place-holder object to indicate that a parameter is to be configured. This also,
     ensures that this parameter does have an associated configuration.
 
@@ -67,6 +70,10 @@ class HParam():
         if name in ['error_message', '_raise', '__dict__', '__class__', 'type']:
             return super().__getattribute__(name)
         self._raise()
+
+
+def HParam(type_=typing.Any) -> _HParamReturnType:
+    return cast(_HParamReturnType, _HParam(type_=type_))
 
 
 @lru_cache()
@@ -145,7 +152,7 @@ def _function_has_keyword_parameters(func, kwargs):
 
         try:
             if (kwarg in parameters and parameters[kwarg].default is not inspect.Parameter.empty and
-                    isinstance(parameters[kwarg].default, HParam)):
+                    isinstance(parameters[kwarg].default, _HParam)):
                 check_type(kwarg, kwargs[kwarg], parameters[kwarg].default.type)
         except TypeError:
             raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
@@ -491,7 +498,7 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
                 parameters[i].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
             if parameters[i].name in merged_kwargs:
                 value = merged_kwargs[parameters[i].name]
-                if parameters[i].name in config_kwargs or isinstance(value, HParam):
+                if parameters[i].name in config_kwargs or isinstance(value, _HParam):
                     # NOTE: This uses ``warnings`` based on these guidelines:
                     # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
                     warnings.warn(
@@ -501,7 +508,7 @@ def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_n
 
     for key, value in kwargs.items():
         if key in config_kwargs or (key in merged_kwargs and
-                                    isinstance(merged_kwargs[key], HParam)):
+                                    isinstance(merged_kwargs[key], _HParam)):
             warnings.warn('@configurable: Overwriting configured argument `%s=%s` in module `%s` '
                           'with `%s`.' % (key, str(merged_kwargs[key]), print_name, value))
 
@@ -578,7 +585,7 @@ def configurable(function: _ConfiguredFunction = None) -> _ConfiguredFunction:
                                    function_default_kwargs, function_signature)
 
         # Ensure all `HParam` objects are overridden.
-        [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, HParam)]
+        [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, _HParam)]
 
         return function(*args, **kwargs)
 

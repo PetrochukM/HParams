@@ -19,6 +19,7 @@ from hparams.hparams import _get_function_default_kwargs
 from hparams.hparams import _get_function_path
 from hparams.hparams import _get_function_signature
 from hparams.hparams import _get_skip_resolution
+from hparams.hparams import _HParam
 from hparams.hparams import _merge_args
 from hparams.hparams import _parse_configuration
 from hparams.hparams import _resolve_configuration
@@ -446,7 +447,7 @@ def test__function_has_keyword_parameters__none_variable():
 def test__function_has_keyword_parameters__type_hints():
     """ Test if `_function_has_keyword_parameters` handles checks validates type hints. """
 
-    def func(arg: str, kwarg: Union[str, HParam] = HParam()) -> None:
+    def func(arg: str, kwarg: str = HParam()) -> None:
         pass
 
     _function_has_keyword_parameters(func, {'arg': ''})
@@ -487,7 +488,7 @@ def test__get_function_default_kwargs__kwarg():
         pass
 
     assert list(_get_function_default_kwargs(func).keys()) == ['kwarg']
-    assert all([isinstance(v, HParam) for v in _get_function_default_kwargs(func).values()])
+    assert all([isinstance(v, _HParam) for v in _get_function_default_kwargs(func).values()])
 
 
 def test__get_function_default_kwargs__arg_kwarg():
