@@ -3,7 +3,7 @@ from functools import partial
 from functools import wraps
 from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import cast
 from typing import get_type_hints
 
 import inspect
@@ -12,6 +12,7 @@ import logging
 import pprint
 import sys
 import traceback
+import typing
 import warnings
 
 from typeguard import check_type
@@ -39,7 +40,7 @@ class HParam():
         type_ (typing, optional): The HParam type.
     """
 
-    def __init__(self, type_=Any):
+    def __init__(self, type_=typing.Any):
         stack = traceback.extract_stack(limit=2)[-2]  # Get the caller line number
         self.type = type_
         self.error_message = 'The parameter set to `HParam` at %s:%s must be configured.' % (
@@ -535,8 +536,10 @@ sys.setprofile(profile_func)
 
 _code_to_function = {}  # Reverse lookup from `function.__code__` to `function`.
 
+_ConfiguredFunction = typing.TypeVar('_ConfiguredFunction', bound=typing.Callable[..., typing.Any])
 
-def configurable(function=None):
+
+def configurable(function: _ConfiguredFunction = None) -> _ConfiguredFunction:
     """ Decorator enables configuring module arguments.
 
     Decorator enables one to set the arguments of a module via a global configuration. The decorator
@@ -548,6 +551,7 @@ def configurable(function=None):
     Returns:
         (callable): Decorated function
     """
+    # TODO: Add recursive typing after it's supported: https://github.com/python/mypy/issues/731
     if not function:
         return configurable
 
@@ -596,7 +600,7 @@ def configurable(function=None):
             'therefore, this cannot verify if `HParams` are injected. '
             'This should only affect Python `builtins`.', function_signature)
 
-    return decorator
+    return cast(_ConfiguredFunction, decorator)
 
 
 def parse_hparam_args(args):

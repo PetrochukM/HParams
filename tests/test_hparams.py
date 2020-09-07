@@ -9,6 +9,7 @@ import itertools
 import os
 import sys
 import time
+import typing
 
 import pytest
 import _pytest
@@ -951,3 +952,15 @@ def test_configurable__benchmark():
     gc.enable()
 
     assert (configured_elapsed / samples) - (native_elapsed / samples) < 3e-05
+
+
+def test_configurable__type_hints__documentation():
+    """ Test if `@configurable` passes along type hints and documentation. """
+
+    @configurable
+    def configured(arg: str):
+        """ Docs """
+        return arg
+
+    assert typing.get_type_hints(configured)['arg'] == str
+    assert configured.__doc__ == " Docs "
