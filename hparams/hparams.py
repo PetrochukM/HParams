@@ -44,7 +44,7 @@ class _HParam():
     """
 
     def __init__(self, type_=typing.Any):
-        stack = traceback.extract_stack(limit=2)[-2]  # Get the caller line number
+        stack = traceback.extract_stack(limit=3)[-3]  # Get the caller line number
         self.type = type_
         self.error_message = 'The parameter set to `HParam` at %s:%s must be configured.' % (
             stack.filename, stack.lineno)
