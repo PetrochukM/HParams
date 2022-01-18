@@ -144,6 +144,11 @@ def _function_has_keyword_parameters(func, kwargs):
     ])
     type_hints = get_type_hints(func)
 
+    frame = sys._getframe(1)
+    while frame.f_code.co_filename == __file__:
+        frame = frame.f_back
+    context = dict(globals=frame.f_globals, locals=frame.f_locals)
+
     for kwarg in kwargs.keys():
         if not has_var_keyword and (kwarg not in parameters or
                                     parameters[kwarg].kind == inspect.Parameter.VAR_POSITIONAL):
@@ -153,14 +158,14 @@ def _function_has_keyword_parameters(func, kwargs):
         try:
             if (kwarg in parameters and parameters[kwarg].default is not inspect.Parameter.empty and
                     isinstance(parameters[kwarg].default, _HParam)):
-                check_type(kwarg, kwargs[kwarg], parameters[kwarg].default.type)
+                check_type(kwarg, kwargs[kwarg], parameters[kwarg].default.type, **context)
         except TypeError:
             raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
                             (_get_function_signature(func), kwarg, parameters[kwarg].default.type))
 
         try:
             if kwarg in type_hints:
-                check_type(kwarg, kwargs[kwarg], type_hints[kwarg])
+                check_type(kwarg, kwargs[kwarg], type_hints[kwarg], **context)
         except TypeError:
             raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
                             (_get_function_signature(func), kwarg, type_hints[kwarg]))
