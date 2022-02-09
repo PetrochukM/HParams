@@ -1,0 +1,36 @@
+{
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true,
+  "editor.rulers": [
+    100
+  ],
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
+  "editor.wordWrapColumn": 100,
+  "files.autoSave": "onFocusChange",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "*.pyc": true,
+    "**/__pycache__/**": true,
+  },
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "search.exclude": {
+    "**/.git": true,
+    "**/coverage": true,
+    "**/venv": true,
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true,
+  },
+  "python.formatting.provider": "black",
+  "python.linting.flake8Enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.mypyEnabled": false,
+  "reflow.preferredLineLength": 100,
+  "git.autofetch": true,
+  "eslint.run": "onSave",
+  "python.analysis.autoImportCompletions": false
+}
