@@ -25,7 +25,7 @@ def _get_child_to_parent_map(root: ast.AST) -> dict[ast.AST, ast.AST]:
     return parents
 
 
-def _find_object(frame: types.FrameType, name: str):
+def _find_object(frame: types.FrameType, name: str) -> typing.Any:
     """Look up a Python object in `frame`."""
     if name in frame.f_locals:
         return frame.f_locals[name]
@@ -110,19 +110,17 @@ def _get_func_and_arg(
     return func, arg
 
 
-# TODO: Type `Params`
-
-
-class Params(dict):
+class Params(dict[str, typing.Any]):
     pass
 
 
 _config: dict[collections.abc.Callable, Params] = {}
 _count: dict[collections.abc.Callable, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-_count[sorted]["a"] = 0
 
 
-def fill(func: typing.Optional[collections.abc.Callable] = None, arg: typing.Optional[str] = None):
+def fill(
+    func: typing.Optional[collections.abc.Callable] = None, arg: typing.Optional[str] = None
+) -> typing.Any:
     global _count
 
     message = (
@@ -164,11 +162,7 @@ def fill(func: typing.Optional[collections.abc.Callable] = None, arg: typing.Opt
 
 
 def purge():
-    """Clear the global configuration.
-
-    Side Effects:
-        The existing global configuration is reset to it's initial state.
-    """
+    """Delete the global configuration."""
     global _config, _count
 
     unused = []
@@ -187,15 +181,9 @@ atexit.register(purge)
 
 
 def get() -> dict[collections.abc.Callable, Params]:
-    """Get the current global configuration.
+    """Get the global configuration.
 
-    TODO: Test that the config can't be messed with.
-
-    Anti-Patterns:
-        It would be an anti-pattern to use this to set the configuration.
-
-    Returns:
-        (dict): The current configuration.
+    NOTE: It would be an anti-pattern to use this for configuring functions.
     """
     return {k: v.copy() for k, v in _config.items()}
 
@@ -212,7 +200,7 @@ def _check_params(func: collections.abc.Callable, params: Params):
 
 
 def add(config: dict[collections.abc.Callable, Params]):
-    """Configure."""
+    """Add to the global configuration."""
     global _config
     for func, params in config.items():
         _check_params(func, params)
@@ -220,5 +208,5 @@ def add(config: dict[collections.abc.Callable, Params]):
 
 
 def partial(func: collections.abc.Callable) -> collections.abc.Callable:
-    """Get a `partial` for `func` using the current configuration."""
+    """Get a `partial` for `func` using the global configuration."""
     return functools.partial(func, **_config[func])
