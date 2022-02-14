@@ -1,435 +1,88 @@
-from functools import lru_cache
-from functools import partial
-from functools import wraps
-from importlib import import_module
-from pathlib import Path
-from typing import cast
-from typing import get_type_hints
-
+import builtins
+import functools
 import inspect
-import itertools
-import logging
-import pprint
-import sys
+import operator
 import traceback
+import types
 import typing
 import warnings
 
-from typeguard import check_type
 
-logger = logging.getLogger(__name__)
-pretty_printer = pprint.PrettyPrinter()
-
-
-class HParams(dict):
+class Params(dict):
     pass
 
 
-_HParamReturnType = typing.TypeVar('_HParamReturnType')
+# Learn more about special methods:
+# https://stackoverflow.com/questions/21887091/cant-dynamically-bind-repr-str-to-a-class-created-with-type
+# https://stackoverflow.com/questions/1418825/where-is-the-python-documentation-for-the-special-methods-init-new
+builtin_types = [
+    getattr(builtins, d) for d in dir(builtins) if isinstance(getattr(builtins, d), type)
+]
+SPECIAL_METHODS = set(m for t in builtin_types + [operator] for m in dir(t) if m[:2] == "__")
+_OTHER_SPECIAL_METHODS = {
+    "__div__",
+    "__copy__",
+    "__long__",
+    "__deepcopy__",
+    "__complex__",
+    "__cmp__",
+    "__oct__",
+    "__hex__",
+    "__idiv__",
+}
+assert len(SPECIAL_METHODS.intersection(_OTHER_SPECIAL_METHODS)) == 0
+SPECIAL_METHODS = SPECIAL_METHODS.union(_OTHER_SPECIAL_METHODS)
 
 
-class _HParam():
-    """ Place-holder object to indicate that a parameter is to be configured. This also,
-    ensures that this parameter does have an associated configuration.
-
-    TODO: Given this object is used as a default argument, on its instantiation check if the module
-    is `configurable`. We've found that inspecting the instantiation of a default argument does
-    not give much information about the module.
-
-    TODO: If we locate the module this was instantiated in, then we can return the correct value
-    and avoid decorators all together. This will require some work with AST; unfortunately.
+class Placeholder:
+    """Temporary object that serves as a placeholder for another object. If this object is used in
+    any way, it will error.
 
     Args:
-        type_ (typing, optional): The HParam type.
+        type_ (typing, optional): The object type this is placeholding for.
     """
 
-    def __init__(self, type_=typing.Any):
-        stack = traceback.extract_stack(limit=3)[-3]  # Get the caller line number
+    def __init__(self, type_: type = typing.Any):
         self.type = type_
-        self.error_message = 'The parameter set to `HParam` at %s:%s must be configured.' % (
-            stack.filename, stack.lineno)
-        # Learn more about special methods:
-        # https://stackoverflow.com/questions/21887091/cant-dynamically-bind-repr-str-to-a-class-created-with-type
-        # https://stackoverflow.com/questions/1418825/where-is-the-python-documentation-for-the-special-methods-init-new
-        for attribute in [
-                '__contains__', '__hash__', '__len__', '__call__', '__add__', '__sub__', '__mul__',
-                '__floordiv__', '__div__', '__mod__', '__pow__', '__lshift__', '__rshift__',
-                '__and__', '__xor__', '__or__', '__iadd__', '__isub__', '__imul__', '__idiv__',
-                '__ifloordiv__', '__imod__', '__ipow__', '__ilshift__', '__irshift__', '__iand__',
-                '__ixor__', '__ior__', '__neg__', '__pos__', '__abs__', '__invert__', '__complex__',
-                '__int__', '__long__', '__float__', '__oct__', '__hex__', '__lt__', '__le__',
-                '__eq__', '__ne__', '__ge__', '__gt__', '__cmp__', '__round__', '__getitem__',
-                '__setitem__', '__delitem__', '__iter__', '__reversed__', '__copy__', '__deepcopy__'
-        ]:
-            setattr(self.__class__, attribute, self._raise)
 
-    def _raise(self, *args, **kwargs):
-        raise ValueError(self.error_message)
+        stack = traceback.extract_stack(limit=2)[-2]
+        self._lineno = f"{stack.filename}:{stack.lineno}"
 
-    def __getattribute__(self, name):
-        if name in ['error_message', '_raise', '__dict__', '__class__', 'type']:
-            return super().__getattribute__(name)
-        self._raise()
-
-
-def HParam(type_=typing.Any) -> _HParamReturnType:
-    return cast(_HParamReturnType, _HParam(type_=type_))
-
-
-@lru_cache()
-def _get_function_signature(func):
-    """ Get a unique signature for each function.
-    """
-    try:
-        # NOTE: Unwrap function decorators because they add indirection to the actual function
-        # filename.
-        while hasattr(func, '__wrapped__'):
-            func = func.__wrapped__
-
-        absolute_filename = Path(inspect.getfile(func))
-        # NOTE: `relative_filename` is the longest filename relative to `sys.path` paths but
-        # shorter than a absolute filename.
-        relative_filename = None
-        for path in sys.path:
+        for attribute in SPECIAL_METHODS - {"__getattribute__"}:
             try:
-                new_filename = str(absolute_filename.relative_to(Path(path).absolute()))
-                if relative_filename is None:
-                    relative_filename = new_filename
-                elif len(new_filename) > len(relative_filename):
-                    relative_filename = new_filename
-            except ValueError:
-                pass
-        filename = str(relative_filename if relative_filename is not None else absolute_filename)
-        return filename.replace('/', '.')[:-3] + '.' + func.__qualname__
-    except TypeError:
-        return '#' + func.__qualname__
+                partial = functools.partial(self._raise, attribute=attribute)
+                setattr(self.__class__, attribute, partial)
+            except (TypeError, AttributeError):
+                continue
+
+    def _raise(self, *_, attribute: str, **__):
+        raise ValueError(
+            f"Oops. The `{self.__class__.__name__}` object attribute `{attribute}` was called. This"
+            "object should only be used as a placeholder for a different object likely defined at"
+            f"{self._lineno}."
+        )
+
+    def __getattribute__(self, name: str):
+        if name in ["_lineno", "_raise", "type", "__dict__", "__class__"]:
+            return super().__getattribute__(name)
+        self._raise(attribute=name)
 
 
-@lru_cache()
-def _get_function_path(func):
-    """ Get an function path that can be resolved by `_resolve_configuration_helper`.
-    """
-    if hasattr(func, '__qualname__'):
-        return inspect.getmodule(func).__name__ + '.' + func.__qualname__
-    else:
-        return inspect.getmodule(func).__name__
+_config: typing.Dict[typing.Callable, Params] = {}
 
 
-@lru_cache()
-def _get_function_parameters(func):
-    return inspect.signature(func).parameters
-
-
-@lru_cache()
-def _get_function_default_kwargs(func):
-    """ Get all keyword parameters in func.
-    """
-    return {
-        k: v.default
-        for k, v in _get_function_parameters(func).items()
-        if v.default is not inspect.Parameter.empty
-    }
-
-
-def _function_has_keyword_parameters(func, kwargs):
-    """ Raise `TypeError` if `func` does not accept all the keyword arguments in `kwargs`.
-
-    Args:
-        func (callable)
-        kwargs (dict): Some keyword arguments.
-    """
-    parameters = _get_function_parameters(func)
-    has_var_keyword = any([
-        parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in list(parameters.values())
-    ])
-    type_hints = get_type_hints(func)
-
-    frame = sys._getframe(1)
-    while frame.f_code.co_filename == __file__:
-        frame = frame.f_back
-    context = dict(globals=frame.f_globals, locals=frame.f_locals)
-
-    for kwarg in kwargs.keys():
-        if not has_var_keyword and (kwarg not in parameters or
-                                    parameters[kwarg].kind == inspect.Parameter.VAR_POSITIONAL):
-            raise TypeError('Function `%s` does not accept configured parameter `%s`.' %
-                            (_get_function_signature(func), kwarg))
-
-        try:
-            if (kwarg in parameters and parameters[kwarg].default is not inspect.Parameter.empty and
-                    isinstance(parameters[kwarg].default, _HParam)):
-                check_type(kwarg, kwargs[kwarg], parameters[kwarg].default.type, **context)
-        except TypeError:
-            raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
-                            (_get_function_signature(func), kwarg, parameters[kwarg].default.type))
-
-        try:
-            if kwarg in type_hints:
-                check_type(kwarg, kwargs[kwarg], type_hints[kwarg], **context)
-        except TypeError:
-            raise TypeError('Function `%s` requires parameter `%s` to be of type `%s`.' %
-                            (_get_function_signature(func), kwarg, type_hints[kwarg]))
-
-
-_skip_resolution = {}
-
-
-def _get_skip_resolution():
-    """ Helper function for testing `_skip_resolution`. """
-    return _skip_resolution
-
-
-def _resolve_configuration_helper(dict_, keys):
-    """ Recursive helper of `_resolve_configuration`.
-
-    TODO: Test resolution of a module in the `__mp_main__` namespace.
-
-    Args:
-        dict_ (dict): Parsed dict from `_parse_configuration`.
-        keys (list): List of past nested dictionary keys.
-
-    Raises:
-        (TypeError): If any path in `dict_` does not end at some configurable decorated function.
-        (TypeError): If any path in `dict_` does not end in an `HParams` object.
-        (TypeError): If any path in `dict_` cannot be imported.
-        (TypeError): If any path in `dict_` refers to the same function.
-        (TypeError or ValueError): If any path in `dict_` has an `HParams` object that does not
-            match the function signature.
-
-    Returns:
-        dict: Each key is a function signature and each value is an `HParams` object.
-    """
-    if not isinstance(dict_, HParams) and isinstance(dict_, dict):
-        return_ = {}
-        if len(dict_) == 0:
-            raise TypeError('Failed to find `HParams` object along path `%s`.' % '.'.join(keys))
-        for key in dict_:
-            resolved = _resolve_configuration_helper(dict_[key], keys[:] + [key])
-            if len(set(resolved.keys()) & set(return_.keys())) > 0:
-                raise TypeError('Function `%s` was defined twice in configuration.' %
-                                '.'.join(keys + [key]))
-            return_.update(resolved)
-        return return_
-    elif not isinstance(dict_, HParams) and not isinstance(dict_, dict):
-        raise TypeError('Failed to find `HParams` object along path `%s`.' % '.'.join(keys))
-
-    trace = []
-    for i in range(1, len(keys)):
-        try:
-            module_path = '.'.join(keys[:i])
-
-            if _is_lazy_resolution:
-                # NOTE: If the module is not already loaded, then skip this resolution for now.
-                attribute = sys.modules.get(module_path, None)
-                if attribute is None:
-                    _skip_resolution[tuple(keys[:])] = dict_
-                    return {}
-            else:
-                attribute = import_module(module_path)
-
-            for j, key in enumerate(keys[i:]):
-                # NOTE: `__qualname__` uses `<locals>` and `<lambdas>` for function naming.
-                # Learn more: https://www.python.org/dev/peps/pep-3155/
-                if key[0] == '<' and key[-1] == '>':
-                    logger.warning('Skipping checks for `%s`, this cannot import `%s`.',
-                                   '.'.join(keys), key)
-                    signature = (_get_function_signature(attribute) + '.' + '.'.join(keys[i:][j:]))
-                    return {signature: dict_}
-                else:
-                    # NOTE: This will fail if `key` is a module that has not yet been imported
-                    # and `attribute` is a package.
-                    attribute = getattr(attribute, key)
-            if hasattr(attribute, '_configurable'):
-                # Check all keyword arguments (`dict_`) are defined in function.
-                _function_has_keyword_parameters(attribute.__wrapped__, dict_)
-
-                # NOTE: Do not check if all `HParam` arguments are set to allow to allow for
-                # `add_config` to be called multiples with partial configurations.
-                return {_get_function_signature(attribute.__wrapped__): dict_}
-            else:
-                trace.append('`%s` is not decorated with `configurable`.' % '.'.join(keys))
-        # TODO: Instead of the generic `ImportError` consider a the more specific
-        # `ModuleNotFoundError` introduced in Python 3.6
-        except ImportError:
-            trace.append('ImportError: Failed to run `import %s`.' % module_path)
-        except AttributeError:
-            trace.append('AttributeError: `%s` not found in `%s`.' % (key, '.'.join(keys[:i + j])))
-
-    trace.reverse()
-
-    warnings.warn('Skipping configuration for `%s` because this ' % '.'.join(keys) +
-                  'failed to find a `configurable` decorator for that configuration.\n' +
-                  'Attempts (most recent attempt last):\n  %s' % ('\n  '.join(trace),))
-
-    return {}
-
-
-def _resolve_configuration(dict_):
-    """ Resolve any relative function paths and check the validity of `dict_`.
-
-    Args:
-        dict_ (dict): Parsed dict to resolve and validate.
-
-    Raises:
-        (TypeError): If any path in `dict_` does not end at some configurable decorated function.
-        (TypeError): If any path in `dict_` does not end in an `HParams` object.
-        (TypeError): If any path in `dict_` cannot be imported.
-        (TypeError): If any path in `dict_` refers to the same function.
-        (TypeError or ValueError): If any path in `dict_` has an `HParams` object that does not
-            match the function signature.
-
-    Returns:
-        dict: Each key is a function signature and each value is an `HParams` object.
-    """
-    return _resolve_configuration_helper(dict_, [])
-
-
-def _resolve_skipped():
-    """ Invoke resolution for skipped configuration paths.
-    """
-    # NOTE: `_resolve_configuration_helper` adds more items to `_skip_resolution`, this ensures
-    # that those items are ignored.
-    global _skip_resolution
-    copy_skip_resolution = _skip_resolution.copy()
-    _skip_resolution = {}
-
-    for keys, dict_ in copy_skip_resolution.items():
-        resolved = _resolve_configuration_helper(dict_, list(keys))
-        _add_resolved_config(resolved)
-
-
-def _add_resolved_config(resolved):
-    """ Add to `configuration` a resolved configuration from `_resolve_configuration`.
-
-    Args:
-        resolved (dict): Each key is a function signature and each value is an `HParams` object.
-    """
-    for key in resolved:
-        if key in _configuration:
-            _configuration[key].update(resolved[key])
-        else:
-            _configuration[key] = resolved[key]
-
-
-def _parse_configuration_helper(dict_, parsed_dict):
-    """ Recursive helper to `_parse_configuration`.
-
-    Args:
-        dict_ (dict): Dotted dictionary to parse.
-        parsed_dict (dict): Parsed dictionary that is created.
-
-    Raises:
-        (TypeError): If any key is not a string, module, or callable.
-        (TypeError): If any string key is not formatted like a python dotted module name.
-        (TypeError): If any key is duplicated.
-
-    Returns:
-        (dict): Parsed dictionary.
-    """
-    if not isinstance(dict_, dict) or isinstance(dict_, HParams):
-        return
-
-    for key in dict_:
-        if not (inspect.ismodule(key) or isinstance(key, str) or callable(key)):
-            raise TypeError('Key `%s` must be a string, module, or callable.' % key)
-        split = (key if isinstance(key, str) else _get_function_path(key)).split('.')
-        past_parsed_dict = parsed_dict
-        for i, split_key in enumerate(split):
-            if split_key == '':
-                raise TypeError('Improper key format `%s`.' % key)
-            if i == len(split) - 1 and (not isinstance(dict_[key], dict) or
-                                        isinstance(dict_[key], HParams)):
-                if split_key in parsed_dict:
-                    raise TypeError('This key `%s` is a duplicate.' % key)
-                parsed_dict[split_key] = dict_[key]
-            else:
-                if split_key not in parsed_dict:
-                    parsed_dict[split_key] = {}
-                parsed_dict = parsed_dict[split_key]
-        _parse_configuration_helper(dict_[key], parsed_dict)
-        parsed_dict = past_parsed_dict
-
-    return parsed_dict
-
-
-def _parse_configuration(dict_):
-    """ Parses `dict_` such that dotted key names are interpreted as multiple keys.
-
-    This configuration parser is intended to replicate python's dotted module names.
-
-    Raises:
-        (TypeError): If any key is not a string, module, or callable.
-        (TypeError): If any string key is not formatted like a python dotted module name.
-        (TypeError): If any key is duplicated.
-
-    Args:
-        dict_ (dict): Dotted dictionary to parse
-
-    Returns:
-        (dict): Parsed dictionary.
-
-    Example:
-        >>> dict = {
-        ...   'abc.abc': {
-        ...     'cda': 'abc'
-        ...   }
-        ... }
-        >>> _parse_configuration(dict)
-        {'abc': {'abc': {'cda': 'abc'}}}
-    """
-    return _parse_configuration_helper(dict_, {})
-
-
-_configuration = {}
-
-
-def add_config(config):
-    """ Add configuration to the global configuration.
-
-    Args:
-        config (dict): Configuration to add.
-
-    Returns: None
+def clear():
+    """Clear the global configuration.
 
     Side Effects:
-        The existing global configuration is merged with the new configuration.
-
-    Raises:
-        (TypeError): If any path in `config` does not end at some configurable decorated function.
-        (TypeError): If any path in `config` does not end in an `HParams` object.
-        (TypeError): If any path in `config` cannot be imported.
-        (TypeError): If any path in `config` refers to the same function.
-        (TypeError or ValueError): If any path in `config` has an `HParams` object that does not
-            match the function signature.
-        (TypeError): If any key is not a string, module, or callable.
-        (TypeError): If any string key is not formatted like a python dotted module name.
-
-    Example:
-        >>> import pprint
-        >>> pprint.pprint([[1, 2]])
-        [[1, 2]]
-        >>>
-        >>> # Configure `pprint` to use a `width` of `2`
-        >>> pprint.pprint = configurable(pprint.pprint)
-        >>> add_config({'pprint.pprint': HParams(width=2)})
-        >>> pprint.pprint([[1, 2]])
-        [[1,
-          2]]
+        The existing global configuration is reset to it's initial state.
     """
-    if len(config) == 0:
-        return
-    parsed = _parse_configuration(config)
-    resolved = _resolve_configuration(parsed)
-    _add_resolved_config(resolved)
+    global _config
+    _config = {}
 
 
-def log_config():
-    """ Log the current global configuration. """
-    logger.info('Global configuration:\n%s', pretty_printer.pformat(_configuration))
-
-
-def get_config():
-    """ Get the current global configuration.
+def get() -> typing.Dict[typing.Callable, Params]:
+    """Get the current global configuration.
 
     Anti-Patterns:
         It would be an anti-pattern to use this to set the configuration.
@@ -437,122 +90,94 @@ def get_config():
     Returns:
         (dict): The current configuration.
     """
-    if _is_lazy_resolution and len(_skip_resolution) > 0:
-        logger.warning(
-            'There are unresolved configurations because lazy resolution was set to `True`; '
-            'therefore, this will only return a partial config.')
-    return _configuration
+    return _config
 
 
-def clear_config():
-    """ Clear the global configuration.
-
-    Side Effects:
-        The existing global configuration is reset to it's initial state.
-    """
-    global _configuration
-    _configuration = {}
-
-
-_is_lazy_resolution = False
-
-
-def set_lazy_resolution(bool_):
-    """ Set `HParams` to resolve configurations during when a configured function
-    is executed instead of when `add_config` is executed.
-
-    This lazy resolution ensures that no modules are imported that are not.
+def _merge_args(
+    func: typing.Callable,
+    args: typing.List,
+    kwargs: typing.Dict,
+    config_kwargs: typing.Dict,
+    default_kwargs: typing.Dict,
+) -> typing.Dict:
+    """Merge `args`, `kwargs`, `config_kwargs`, and `default_kwargs` with special handling for
+    `Placeholder` objects.
 
     Args:
-        bool_ (bool): If `True` the configurations are resolved and checked lazily.
-    """
-    global _is_lazy_resolution
-    _is_lazy_resolution = bool_
-    _resolve_skipped()
-
-
-def _merge_args(parameters, args, kwargs, config_kwargs, default_kwargs, print_name):
-    """ Merge `func` `args` and `kwargs` with `default_kwargs`.
-
-    The `_merge_args` prefers `kwargs` and `args` over `default_kwargs`.
-
-    Args:
-        parameters (list of inspect.Parameter): module that accepts `args` and `kwargs`
-        args (list of any): Arguments accepted by `func`.
-        kwargs (dict of any): Keyword arguments accepted by `func`.
-        config_kwargs (dict of any): Config keyword arguments accepted by `func` to merge.
-        default_kwargs (dict of any): Default keyword arguments accepted by `func` to merge.
-        print_name (str): Function name to print with warnings.
+        func: Function.
+        args: Arguments for function.
+        kwargs: Keyword arguments for function.
+        config_kwargs: Additional keyword arguments for function.
+        default_kwargs: Default keyword arguments for function.
 
     Returns:
-        (dict): kwargs merging `args`, `kwargs`, and `default_kwargs`
+        Keyword arguments that merge `args`, `kwargs`, `config_kwargs`, and `default_kwargs`.
     """
+    POSITIONAL_ONLY = inspect.Parameter.POSITIONAL_ONLY
+    POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD
+    VAR_POSITIONAL = inspect.Parameter.VAR_POSITIONAL
+
+    params = list(inspect.signature(func).parameters)
     merged_kwargs = default_kwargs.copy()
     merged_kwargs.update(config_kwargs)
 
-    # Delete `merged_kwargs` that conflict with `args`.
+    # NOTE: Delete `merged_kwargs` that conflict with `args`.
     # NOTE: Positional arguments must come before keyword arguments.
     for i, arg in enumerate(args):
-        if i >= len(parameters):
-            raise TypeError('Too many arguments (%d > %d) passed.' % (len(args), len(parameters)))
+        if i >= len(params):
+            raise TypeError(f"Too many arguments ({len(args)} > {len(params)}) passed.")
 
-        if parameters[i].kind == inspect.Parameter.VAR_POSITIONAL:
+        param = params[i]
+
+        if param.kind == VAR_POSITIONAL:
             break  # NOTE: Rest of the args are absorbed by VAR_POSITIONAL (e.g. `*args`)
 
-        if (parameters[i].kind == inspect.Parameter.POSITIONAL_ONLY or
-                parameters[i].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
-            if parameters[i].name in merged_kwargs:
-                value = merged_kwargs[parameters[i].name]
-                if parameters[i].name in config_kwargs or isinstance(value, _HParam):
-                    # NOTE: This uses ``warnings`` based on these guidelines:
-                    # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
-                    warnings.warn(
-                        '@configurable: Overwriting configured argument `%s=%s` in module `%s` '
-                        'with `%s`.' % (parameters[i].name, str(value), print_name, arg))
-                del merged_kwargs[parameters[i].name]
+        is_positional = param.kind == POSITIONAL_ONLY or param.kind == POSITIONAL_OR_KEYWORD
+
+        if (
+            is_positional
+            and param.name in merged_kwargs
+            and (param.name in config_kwargs or isinstance(merged_kwargs[param.name], Placeholder))
+        ):
+            # NOTE: This uses ``warnings`` based on these guidelines:
+            # https://stackoverflow.com/questions/9595009/python-warnings-warn-vs-logging-warning/14762106
+            message = (
+                f"Overwriting configured argument `{param.name}={str(merged_kwargs[param.name])}` "
+            )
+            warnings.warn(message + f"in module `{func.__qualname__}` with `{arg}`.")
+        del merged_kwargs[param.name]
 
     for key, value in kwargs.items():
-        if key in config_kwargs or (key in merged_kwargs and
-                                    isinstance(merged_kwargs[key], _HParam)):
-            warnings.warn('@configurable: Overwriting configured argument `%s=%s` in module `%s` '
-                          'with `%s`.' % (key, str(merged_kwargs[key]), print_name, value))
+        if key in config_kwargs or (
+            key in merged_kwargs and isinstance(merged_kwargs[key], Placeholder)
+        ):
+            message = f"Overwriting configured argument `{key}={str(merged_kwargs[key])}` "
+            warnings.warn(message + f"in module `{func.__qualname__}` with `{value}`.")
 
     merged_kwargs.update(kwargs)
     return args, merged_kwargs
 
 
-# NOTE: `pytest` coverage module cannot track this code.
+def _copy_func(func: typing.Callable) -> typing.Callable:
+    """Create an new instance of `func`.
 
-
-def profile_func(frame, event, arg):  # pragma: no cover
-    """ This `profile_func` is executed by `sys.setprofile`. It is used to warn the user if
-    a configured function is run without the decorator.
-
-    Args:
-        See docs for `sys.setprofile`.
+    Based on:
+    https://stackoverflow.com/questions/13503079/how-to-create-a-copy-of-a-python-function
     """
-    if (event != 'call' or not hasattr(frame, 'f_code') or not hasattr(frame, 'f_back') or
-            not hasattr(frame.f_back, 'f_code') or frame.f_code not in _code_to_function):
-        return
-
-    function = _code_to_function[frame.f_code]
-    last_filename = frame.f_back.f_code.co_filename
-    if not (__file__ == last_filename and frame.f_back.f_code.co_name == 'decorator'):
-        warnings.warn(
-            '@configurable: The decorator was not executed immediately before `%s` at (%s:%s); '
-            'therefore, it\'s `HParams` may not have been injected. ' %
-            (_get_function_signature(function), last_filename, frame.f_back.f_lineno))
-
-
-sys.setprofile(profile_func)
-
-_code_to_function = {}  # Reverse lookup from `function.__code__` to `function`.
-
-_ConfiguredFunction = typing.TypeVar('_ConfiguredFunction', bound=typing.Callable[..., typing.Any])
+    copy_ = types.FunctionType(
+        func.__code__,
+        func.__globals__,
+        name=func.__name__,
+        argdefs=func.__defaults__,
+        closure=func.__closure__,
+    )
+    copy_ = functools.update_wrapper(copy_, func)
+    copy_.__kwdefaults__ = func.__kwdefaults__
+    return copy_
 
 
-def configurable(function: _ConfiguredFunction = None) -> _ConfiguredFunction:
-    """ Decorator enables configuring module arguments.
+def _wrapper(func: typing.Callable):
+    """Decorator enables configuring module arguments.
 
     Decorator enables one to set the arguments of a module via a global configuration. The decorator
     also stores the parameters the decorated function was called with.
@@ -563,94 +188,74 @@ def configurable(function: _ConfiguredFunction = None) -> _ConfiguredFunction:
     Returns:
         (callable): Decorated function
     """
-    # TODO: Add recursive typing after it's supported: https://github.com/python/mypy/issues/731
-    if not function:
-        return configurable
 
-    # TODO: This may grow in memory if functions are dynamically created and deleted.
-    function_signature = _get_function_signature(function)
-    function_parameters = list(_get_function_parameters(function).values())
-    function_default_kwargs = _get_function_default_kwargs(function)
+    @functools.wraps(func)
+    def decorator(
+        *args,
+        ___func: typing.Callable = func,
+        ___func_copy: typing.Callable = _copy_func(func),
+        ___config: typing.Dict[typing.Callable, Params] = _config,
+        ___Placeholder=Placeholder,
+        **kwargs,
+    ):
+        import warnings
 
-    def _get_configuration():
-        return _configuration[function_signature] if function_signature in _configuration else {}
+        if ___func not in ___config:
+            warnings.warn("@configurable: No config for `%s`. " % (___func.__qualname__,))
 
-    @wraps(function)
-    def decorator(*args, **kwargs):
-        global _configuration
+        args, kwargs = _merge_args(
+            params, args, kwargs, ___config[___func], function_default_kwargs, function_signature
+        )
 
-        _resolve_skipped()
+        # Ensure all `Placeholder` objects are overridden.
+        for arg in [a for v in [args, kwargs.values()] for a in v]:
+            if isinstance(arg, ___Placeholder):
+                arg._raise()
 
-        # Get the function configuration
-        config = _get_configuration()
-        if function_signature not in _configuration:
-            warnings.warn('@configurable: No config for `%s`. ' % (function_signature,))
-
-        args, kwargs = _merge_args(function_parameters, args, kwargs, config,
-                                   function_default_kwargs, function_signature)
-
-        # Ensure all `HParam` objects are overridden.
-        [a._raise() for a in itertools.chain(args, kwargs.values()) if isinstance(a, _HParam)]
-
-        return function(*args, **kwargs)
-
-    # USE CASE: `get_configured_partial` can be used to export a function with it's configuration
-    # for multiprocessing.
-    def get_configured_partial():
-        return partial(decorator, **_get_configuration())
-
-    decorator.get_configured_partial = get_configured_partial
+        return ___func_copy(*args, **kwargs)
 
     # Add a flag to the func; enabling us to check if a function has the configurable decorator.
-    decorator._configurable = True
+    decorator._wrapped = True
 
-    if hasattr(function, '__code__'):
-        _code_to_function[function.__code__] = function
-    else:
-        logger.warning(
-            '@configurable: `%s` does not have a `__code__` attribute; '
-            'therefore, this cannot verify if `HParams` are injected. '
-            'This should only affect Python `builtins`.', function_signature)
-
-    return cast(_ConfiguredFunction, decorator)
+    return decorator
 
 
-def parse_hparam_args(args):
-    """ Parse CLI arguments like `['--torch.optim.adam.Adam.__init__', 'HParams(lr=0.1)']` to
-      :class:`dict`.
+def _wrap_func_in_place(func: typing.Callable) -> typing.Callable:
+    if hasattr(func, "_wrapped"):
+        return func
 
-    Args:
-        args (list of str): List of CLI arguments
+    wrapped = _wrapper(func)
+    func.__code__ = wrapped.__code__
 
-    Returns
-        (dict): Dictionary of arguments.
-    """
-    return_ = {}
 
-    while len(args) > 0:
-        arg = args.pop(0)
+def add(config: typing.Dict[typing.Callable, Params]):
+    """Configure."""
+    # TODO: Why do we need __code__?
+    # We could check that all `Placeholders` are overwritten with `__defaults__`
+    # We can get the function configurations...
+    # We DON'T KNOW if a default is overwritten, which is fine, maybe? So, if, a configuration
+    # which is intended to be used, is overwritten, we'd have no idea...
+    # We can add a partial export
+    # We can add a _configurable flag
+    # Let's use __code__
+    # TODO: How do we make this work with multiple processes? Will we still need a unique function
+    # signature? That's fine... I just don't want to parse strings, and import them... I guess, I'll
+    # still need to...
+    # Okay, we need to figure out, can we pickle a refernece, and how do we reinstantiate the config
+    # in another process...
 
-        error = ValueError('The command line argument `%s` is ambiguous. ' % arg +
-                           'The format must be either `--key=value` or `--key value`.')
-
-        try:
-            if '--' == arg[:2] and '=' not in arg:
-                key = arg
-                value = args.pop(0)
-            elif '--' == arg[:2] and '=' in arg:
-                key, value = tuple(arg.split('=', maxsplit=1))
-            else:
-                raise error
-        except IndexError:
-            raise error
-
-        key = key[2:]  # Remove double flags
-        return_[key] = eval(value)
-
-        if not isinstance(return_[key], HParams):
-            raise ValueError('The command line argument value must be an `HParams` object like so '
-                             '`--torch.optim.adam.Adam.__init__=HParams(lr=0.1)`.')
-
-    logger.info('These command line arguments were parsed into:\n%s', return_)
-
-    return return_
+    # NOTE: We're looking to dramatically simplify this code base, basically, the configuration
+    # is a map from functions to parameters. The function isn't wrapped with a decorator, instead,
+    # we actually change the code of the function to do a look up in the _config dictionary.
+    # NOTE: We want to get a quick read on if this concept works before we flesh it out,
+    # so one of the last things I was working on is testing the multiprocessing aspects of it?
+    # - The worry with multiprocessing is that it creates a new version of the code base,
+    # so we'd need to reinstantiate the configuration module, the issues are...
+    # Can we pickle the config file if it's not stored as strings?
+    # NOTE: Does it all matter? I think, if we can't pickle it, than we can recreate it, just
+    # fine.
+    # TODO: Let's just start cleaning up all this, writing tests, documentation, etc. We'll
+    # 100% leave room for multiprocessing tests
+    global _config
+    [_wrap_func_in_place(k) for k in config]
+    _config = {**_config, **config}
