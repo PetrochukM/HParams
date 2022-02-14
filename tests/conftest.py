@@ -1,12 +1,15 @@
-from hparams.hparams import clear_config
-from hparams.hparams import set_lazy_resolution
+import warnings
 
 import pytest
+
+from config.config import purge
 
 
 @pytest.fixture(autouse=True)
 def run_before_test():
-    # Reset the global state before every test
-    clear_config()
-    set_lazy_resolution(False)
     yield
+
+    # Reset the global state after every test
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        purge()
