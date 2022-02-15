@@ -2,7 +2,8 @@ import functools
 
 import pytest
 
-from config.config import Params, _get_func_and_arg, add, fill, get, purge
+from config.config import Params, _get_func_and_arg, add, fill, get, partial, purge
+
 
 
 def _func(*a, **k):
@@ -133,6 +134,23 @@ def test_config__incorrect_arg():
 def test_config__variable_args():
     """Test `config.add` handles variable parameters."""
     add({_func: Params(does_not_exist=False)})
+
+
+def test_config__incorrect_type():
+    """Test `config.add` handles incorrectly typed arguments."""
+
+    def func(a: str):
+        pass
+
+    with pytest.raises(TypeError):
+        add({func: Params(a=False)})
+
+
+def test_config__partial():
+    """Test `config.partial` configures a partial."""
+    add({enumerate: Params(start=1)})
+    result = list(partial(enumerate)(range(3)))
+    assert result == [(1, 0), (2, 1), (3, 2)]
 
 
 def test_config__change():

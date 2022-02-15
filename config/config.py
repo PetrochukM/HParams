@@ -9,8 +9,10 @@ import types
 import typing
 import warnings
 from collections import defaultdict
+from typing import get_type_hints
 
 import executing
+from typeguard import check_type
 
 
 def _get_child_to_parent_map(root: ast.AST) -> dict[ast.AST, ast.AST]:
@@ -62,7 +64,7 @@ def _get_func_and_arg(
     func: typing.Optional[collections.abc.Callable] = None,
     stack: int = 1,
 ) -> tuple[collections.abc.Callable, str]:
-    """Get the calling function that executes this code to get it's input.
+    """Get the calling function and argument that executes this code to get it's input.
 
     NOTE: This may not work with PyTest, learn more:
     https://github.com/alexmojaki/executing/issues/2
@@ -72,14 +74,6 @@ def _get_func_and_arg(
     https://www.python.org/dev/peps/pep-0657/
 
     TODO: Cache the function similar to `executing_cache` in the `executing` package.
-
-    For example:
-        >>> def func(a):
-        ...      pass
-        ...
-        >>> func((caller := get_calling_func()))
-        >>> caller
-        func
     """
     if func is not None and arg is not None:
         return func, arg
@@ -119,8 +113,35 @@ _count: dict[collections.abc.Callable, dict[str, int]] = defaultdict(lambda: def
 
 
 def fill(
-    func: typing.Optional[collections.abc.Callable] = None, arg: typing.Optional[str] = None
+    arg: typing.Optional[str] = None, func: typing.Optional[collections.abc.Callable] = None
 ) -> typing.Any:
+    """Get the configuration for `func` and `arg`.
+
+    NOTE: If `arg` and `func` isn't passed in, then this will attempt to automatically determine
+          them by parsing the code with Python AST. For this to succeed, the function and argument
+          must be explicitly named in the code base. Here are a couple examples for reference...
+
+          ✅ function(arg=fill())
+          ✅ function(fill('arg'))
+          ✅ arg = fill('arg', function)
+             function(arg=arg)
+          ✅ function(fill()) # NOTE: All arguments for `function` are returned.
+          ❌ func = lambda: function\n"
+              func()(arg=fill()) # NOTE: Function isn't named.
+
+    Args:
+        arg: The argument name.
+        func: A reference to a function.
+
+    Raises:
+        SyntaxError: If this is unable to determine the argument name or function reference.
+        KeyError: If this cannot find a configuration.
+
+    Returns: If argument is named, then this returns the configured value for the function and
+        argument; otherwise, this will return all of the configured values for the function in
+        a dictionary.
+    """
+
     global _count
 
     message = (
@@ -131,10 +152,13 @@ def fill(
         )
         + (
             "\n"
-            "✅ function(arg=get_calling_func())\n"
-            "❌ function(get_calling_func())\n"
+            "✅ function(arg=fill())\n"
+            "✅ function(fill('arg'))\n"
+            "✅ arg = fill('arg', function)\n"
+            "   function(arg=arg)\n"
+            "✅ function(fill()) # NOTE: All arguments for `function` are returned.\n"
             "❌ func = lambda: function\n"
-            "   func()(arg=get_calling_func())\n"
+            "   func()(arg=fill()) # NOTE: Function isn't named.\n"
         )
     )
 
@@ -191,8 +215,20 @@ def get() -> dict[collections.abc.Callable, Params]:
 def _check_params(func: collections.abc.Callable, params: Params):
     """Ensure every argument in `params` exists in `func`."""
     parameters = inspect.signature(func).parameters
+
+    # NOTE: Check the `params` type corresponds with the function signature.
+    frame = sys._getframe(1)
+    while frame.f_code.co_filename == __file__:
+        frame = frame.f_back
+    context = dict(globals=frame.f_globals, locals=frame.f_locals)
+    type_hints = get_type_hints(func)
+    for key, value in params.items():
+        if key in parameters and key in type_hints:
+            check_type(key, value, type_hints[key], **context)
+
+    # NOTE: Check `params` exist in the function signature.
     if any(p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD) for p in parameters.values()):
-        return True
+        return
 
     for key in params.keys():
         if key not in parameters:
@@ -202,8 +238,7 @@ def _check_params(func: collections.abc.Callable, params: Params):
 def add(config: dict[collections.abc.Callable, Params]):
     """Add to the global configuration."""
     global _config
-    for func, params in config.items():
-        _check_params(func, params)
+    [_check_params(func, params) for func, params in config.items()]
     _config = {**{k: v.copy() for k, v in config.items()}, **_config}
 
 
