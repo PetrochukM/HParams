@@ -108,7 +108,8 @@ class Params(dict[str, typing.Any]):
     pass
 
 
-_config: dict[collections.abc.Callable, Params] = {}
+Config = dict[collections.abc.Callable, Params]
+_config: Config = {}
 _count: dict[collections.abc.Callable, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
 
@@ -204,7 +205,7 @@ def purge():
 atexit.register(purge)
 
 
-def get() -> dict[collections.abc.Callable, Params]:
+def get() -> Config:
     """Get the global configuration.
 
     NOTE: It would be an anti-pattern to use this for configuring functions.
@@ -235,7 +236,7 @@ def _check_params(func: collections.abc.Callable, params: Params):
             raise ValueError(f"{key} is not any argument in {func.__qualname__}")
 
 
-def add(config: dict[collections.abc.Callable, Params]):
+def add(config: Config):
     """Add to the global configuration."""
     global _config
     [_check_params(func, params) for func, params in config.items()]
@@ -245,3 +246,53 @@ def add(config: dict[collections.abc.Callable, Params]):
 def partial(func: collections.abc.Callable) -> collections.abc.Callable:
     """Get a `partial` for `func` using the global configuration."""
     return functools.partial(func, **_config[func])
+
+
+def parse_cli_args(args: typing.List[str]) -> Config:
+    """Parse CLI arguments like `['--sorted', 'Params(reverse=True)']` to
+    `{sorted: Params(reverse=True)}`.
+
+    Args:
+        args: List of CLI arguments.
+
+    Returns: Configuration that can be used.
+    """
+    return_ = {}
+
+    while len(args) > 0:
+        arg = args.pop(0)
+
+        error = ValueError(
+            f"Unable to parse the command line argument `{arg}`. "
+            "The format must be either `--key=value` or `--key value`."
+        )
+
+        try:
+            if "--" == arg[:2] and "=" not in arg:
+                key = arg
+                value = args.pop(0)
+            elif "--" == arg[:2] and "=" in arg:
+                key, value = tuple(arg.split("=", maxsplit=1))
+            else:
+                raise error
+        except IndexError:
+            raise error
+
+        key = key[2:]  # NOTE: Remove double flags
+        funcs = [func for func in _config.keys() if func.__qualname__ == key]
+        if len(funcs) > 1:
+            raise NotImplementedError(
+                "Unable to disambiguate between multiple functions with the same `__qualname__`."
+            )
+        elif len(funcs) == 0:
+            raise ValueError(f"Unable to find function '{key}' in configuration.")
+
+        return_[funcs[0]] = eval(value)
+
+        if not isinstance(return_[funcs[0]], Params):
+            raise ValueError(
+                "The command line argument value must be an `Params` object like so "
+                "`--sorted=Params(reverse=True)`."
+            )
+
+    return return_

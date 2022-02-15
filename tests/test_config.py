@@ -2,8 +2,10 @@ import functools
 
 import pytest
 
-from config.config import Params, _get_func_and_arg, add, fill, get, partial, purge
+from config.config import Params, _get_func_and_arg, add, fill, get, parse_cli_args, partial, purge
 
+# TODO: Test classes
+# TODO: Add a command line module?
 
 
 def _func(*a, **k):
@@ -167,3 +169,50 @@ def test_config__change():
     assert get() == excepted
     gotten[sorted] = Params()
     assert get() == excepted
+
+
+def test_parse_cli_args():
+    """Test `config.parse_cli_args` on a basic case."""
+    add({sorted: Params(reverse=False)})
+    cli_args = ["--sorted", "Params(reverse=True)"]
+    assert parse_cli_args(cli_args) == {sorted: Params(reverse=True)}
+
+
+def test_parse_cli_args__no_config():
+    """Test `config.parse_cli_args` errors when the configuration doesn't exist."""
+    cli_args = ["--sorted", "Params(reverse=True)"]
+    with pytest.raises(ValueError, match="Unable to find function 'sorted' in configuration."):
+        parse_cli_args(cli_args)
+
+
+def test_parse_cli_args__single_flag():
+    """Test `config.parse_cli_args` errors when a single flag is used."""
+    add({sorted: Params(reverse=False)})
+    cli_args = ["-sorted", "Params(reverse=True)"]
+    with pytest.raises(ValueError, match="Unable to parse the command line argument `-sorted`."):
+        parse_cli_args(cli_args)
+
+
+def test_parse_cli_args__no_value():
+    """Test `config.parse_cli_args` errors when a value isn't passed in."""
+    cli_args = ["--sorted"]
+    with pytest.raises(ValueError, match="Unable to parse the command line argument `--sorted`."):
+        parse_cli_args(cli_args)
+
+
+def test_parse_cli_args__no_params():
+    """Test `config.parse_cli_args` errors when `Params` isn't passed in."""
+    add(
+        {sorted: Params(reverse=False)},
+    )
+    cli_args = ["--sorted", "True"]
+    with pytest.raises(ValueError, match="argument value must be an `Params` object"):
+        parse_cli_args(cli_args)
+
+
+def test_parse_cli_args__invalid_eval_expression():
+    """Test `config.parse_cli_args` errors when an invalid expression is passed in."""
+    add({sorted: Params(reverse=False)})
+    cli_args = ["--sorted", "reverse=True"]
+    with pytest.raises(SyntaxError):
+        parse_cli_args(cli_args)
