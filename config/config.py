@@ -39,7 +39,6 @@ def _find_object(frame: types.FrameType, name: str) -> typing.Any:
 def _resolve_attributes(frame: types.FrameType, attr: ast.AST) -> typing.Any:
     """Resolve a chain of attributes to a Python object."""
     attrs = [attr.attr]
-    print(ast.dump(attr))
     while isinstance(attr.value, ast.Attribute):
         attr = attr.value
         attrs.append(attr.attr)
