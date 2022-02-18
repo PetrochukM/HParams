@@ -4,9 +4,6 @@ import pytest
 
 from config.config import Params, _get_func_and_arg, add, fill, get, parse_cli_args, partial, purge
 
-# TODO: Test classes
-# TODO: Add a command line module?
-
 
 def _func(*a, **k):
     return (a, k)
@@ -20,10 +17,63 @@ _func.attr = _other_func
 _func.attr.bttr = _other_func
 
 
+class Obj:
+    def __init__(self, *a, **k) -> None:
+        self.results = (a, k)
+
+    def func(self, *a, **k):
+        return _func(*a, **k)
+
+    def __call__(self, *a, **k):
+        return _func(*a, **k)
+
+    def new(self, *a, **k):
+        return Obj(*a, **k)
+
+
+class OtherObj(Obj):
+
+    static_obj = Obj()
+
+    def __init__(self, *a, **k) -> None:
+        super().__init__(*a, **k)
+        self.obj = super().new(*a, **k)
+
+
 def test__get_func_and_arg():
     """Test `_get_func_and_arg` can handle the basic case."""
     result = _func(a=_get_func_and_arg())
     assert result == (tuple(), {"a": (_func, "a")})
+
+
+def test__get_func_and_arg__class_init():
+    """Test `_get_func_and_arg` can handle a class instantiation."""
+    result = Obj(a=_get_func_and_arg()).results
+    assert result == (tuple(), {"a": (Obj.__init__, "a")})
+
+
+def test__get_func_and_arg__class_func():
+    """Test `_get_func_and_arg` can handle a class func."""
+    result = Obj().func(a=_get_func_and_arg())
+    assert result == (tuple(), {"a": (Obj.func, "a")})
+
+
+def test__get_func_and_arg__class_attribute():
+    """Test `_get_func_and_arg` can handle instantiated attributes."""
+    with pytest.raises(SyntaxError):
+        OtherObj().obj.new(a=_get_func_and_arg())
+
+
+def test__get_func_and_arg__class_static_attribute():
+    """Test `_get_func_and_arg` can handle static attributes."""
+    result = OtherObj().static_obj.new(a=_get_func_and_arg()).results
+    assert result == (tuple(), {"a": (OtherObj.static_obj.new, "a")})
+
+
+def test__get_func_and_arg__class_special():
+    """Test `_get_func_and_arg` can handle a special class func."""
+    with pytest.raises(SyntaxError):
+        Obj()(a=_get_func_and_arg())
 
 
 def test__get_func_and_arg__defined_arg():

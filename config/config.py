@@ -39,12 +39,23 @@ def _find_object(frame: types.FrameType, name: str) -> typing.Any:
 def _resolve_attributes(frame: types.FrameType, attr: ast.AST) -> typing.Any:
     """Resolve a chain of attributes to a Python object."""
     attrs = [attr.attr]
+    print(ast.dump(attr))
     while isinstance(attr.value, ast.Attribute):
         attr = attr.value
         attrs.append(attr.attr)
-    obj = _find_object(frame, attr.value.id)
+    if isinstance(attr.value, ast.Call) and isinstance(attr.value.func, ast.Name):
+        obj = _find_object(frame, attr.value.func.id)
+        if not inspect.isclass(obj):
+            raise SyntaxError("Object is anonymous.")
+    elif not isinstance(attr.value, ast.Name):
+        raise SyntaxError("Object is anonymous.")
+    else:
+        obj = _find_object(frame, attr.value.id)
     for attr in reversed(attrs):
-        obj = getattr(obj, attr)
+        try:
+            obj = getattr(obj, attr)
+        except AttributeError:
+            raise SyntaxError("Unable to resolve attribute.")
     return obj
 
 
@@ -100,6 +111,8 @@ def _get_func_and_arg(
             if len(parent.args) == 0:
                 raise SyntaxError("Partial doesn't have arguments.")
             func = _resolve_func(frame, parent.args[0])
+        if inspect.isclass(func):
+            func = func.__init__
 
     return func, arg
 
