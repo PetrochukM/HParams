@@ -78,7 +78,6 @@ config.add({
       train_data_path="url_lists/all_train.txt",
       val_data_path="url_lists/all_val.txt"
   ),
-  data.source_tokenizer: config.Args(type_="pretrained_transformer", model_name="batch_large"),
   data.dataset_reader: config.Args(
       type_="cnn_dm",
       source_max_tokens=1022,
@@ -88,9 +87,7 @@ config.add({
   train.Trainer.make_optimizer: config.Args(
       type_="huggingface_adamw",
       lr=3e-5,
-      betas=[0.9, 0.999],
-      eps=1e-8,
-      correct_bias=true
+      correct_bias=True
   )
   train.Trainer.__init__: config.Args(
       num_epochs=3,
