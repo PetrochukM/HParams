@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ast
 import atexit
 import collections
@@ -16,13 +18,13 @@ import executing
 from typeguard import check_type
 
 
-class Args(dict[str, typing.Any]):
+class Args(typing.Dict[str, typing.Any]):
     pass
 
 
 ConfigValue = Args
 ConfigKey = collections.abc.Callable
-Config = dict[ConfigKey, ConfigValue]
+Config = typing.Dict[ConfigKey, ConfigValue]
 _config: Config = {}
 _count: dict[ConfigKey, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
@@ -326,7 +328,7 @@ def to_str(func: ConfigKey):
         >>> to_str(to_str)
         'config.config.to_str'
         >>> import random
-        >>> config.to_str(random.randint)
+        >>> to_str(random.randint)
         'random.Random.randint'
     """
     try:
