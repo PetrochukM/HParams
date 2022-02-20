@@ -134,8 +134,9 @@ experiment.log_parameters(config.log())
 
 ### Advanced: Sharing configurations between processes
 
-In multiprocessing, it may be useful to share the configuration file between them. In this case, the
-configuration can be exported to another process and then subsequently imported, see below -
+In multiprocessing, it may be useful to share the configuration file between processes. In this
+case, the configuration can be exported to another process and then subsequently imported, see
+below:
 
 ```python
 from multiprocessing import Process
