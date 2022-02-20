@@ -12,7 +12,7 @@ This package allows you to configure functions directly.
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pythonic-config.svg?style=flat-square)
 [![Codecov](https://img.shields.io/codecov/c/github/PetrochukM/HParams/master.svg?style=flat-square)](https://codecov.io/gh/PetrochukM/HParams)
 [![Downloads](http://pepy.tech/badge/pythonic-config)](http://pepy.tech/project/pythonic-config)
-[![Build Status](https://img.shields.io/travis/PetrochukM/HParams/master.svg?style=flat-square)](https://travis-ci.org/PetrochukM/HParams)
+[![Build Status](https://img.shields.io/travis/PetrochukM/HParams/master.svg?style=flat-square)](https://travis-ci.com/PetrochukM/HParams)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Twitter: PetrochukM](https://img.shields.io/twitter/follow/MPetrochuk.svg?style=social)](https://twitter.com/MPetrochuk)
 
