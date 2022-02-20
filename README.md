@@ -10,15 +10,8 @@
 This package allows you to configure functions directly. You will be able to create an intuitive
 configuration file that explicitly sets function arguments, globally.
 
-#### Features 💥
-
-- **Battle-tested over many years** - At WellSaid Labs, we've used this module for years to
-  configure our state-of-the-art text-to-speech machine learning scripts.
-- **Fast with little to no runtime overhead** - In addition to being fast, it incorporates caching
-  throughout.
-- **Lightweight with only two dependencies** - They themselves are lightweight and widely used for
-  type checking and introspection.
-- **Runtime type checking** - The configuration is type-checked at runtime for correctness.
+This is a lightweight package with only two widely dependencies and only a couple hundred lines of
+code.
 
 #### Contents
 
@@ -68,6 +61,8 @@ do_something_cool(how_many_times=config.get())
 This approach is simple but powerful. Now, each configuration can be directly attributed to a
 documented function argument.
 
+Furthermore, `config` incorporates `typeguard` 💂‍♀️ so every configuration is type checked at runtime.
+
 ### Writing a configuration file
 
 The simple example above can be extended to create a configuration file. For example below, it shows
@@ -105,10 +100,11 @@ config.add({
 })
 ```
 
-With this approach, this configuration file will make it clear which hyperparameters are set and
-where. This improves overall readability of the configuration file. Also, since the configuration
-file is written in Python, you can use variables, lambdas, etc to further modularize the
-configuration file.
+With this approach, this configuration file will make it clear which (hyper)parameters are set and
+where. This improves overall readability of the configuration file.
+
+Last but not least, the configuration file is written in Python, you can use variables, lambdas, etc
+to further modularize.
 
 ### Configuring via the command line
 
