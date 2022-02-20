@@ -65,8 +65,7 @@ Furthermore, `config` incorporates `typeguard` 💂‍♀️ so every configurat
 
 ### Writing a configuration file
 
-The simple example above can be extended to create a configuration file. For example below, it shows
-how you might go about configuring a machine learning training run.
+The simple example above can be extended to create a configuration file, for example:
 
 ```python
 import config
@@ -105,7 +104,8 @@ to further modularize.
 
 ### Configuring via the command line
 
-Additionally, this package supports configuration from the command line, see below -
+In case you want to change one variable at a time, this package supports configuration from the
+command line, for example:
 
 ```console
 foo@bar:~$ python example.py --sorted 'Args(reverse=True)'
@@ -117,8 +117,6 @@ import config
 
 config.add(config.parse_cli_args(sys.argv[1:]))
 ```
-
-This is particularly useful if you want to change one configuration at a time.
 
 ### Logging the configuration
 
