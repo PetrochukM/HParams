@@ -1,5 +1,5 @@
-# NOTE: If you intend to contribute or develop on HParams, please install requirements.txt
-# NOTE: If you intend to use HParams, requirements.txt is overkill and look @ setup.py
+# NOTE: If you intend to contribute or develop on Config, please install requirements.txt
+# NOTE: If you intend to use Config, requirements.txt is overkill and look @ setup.py
 # `install_requires`
 
 # Setup.py Install
@@ -21,3 +21,6 @@ wheel
 
 # Runtime type checking
 typeguard
+
+# Runtime introspection
+executing
