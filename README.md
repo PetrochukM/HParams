@@ -8,10 +8,10 @@
 [![Twitter: PetrochukM](https://img.shields.io/twitter/follow/MPetrochuk.svg?style=social)](https://twitter.com/MPetrochuk)
 
 This package allows you to configure functions directly. You will be able to create an intuitive
-configuration file that explicitly sets function arguments, globally.
+type-checked configuration file that explicitly sets function arguments, globally.
 
-This is a lightweight package with only two widely dependencies and only a couple hundred lines of
-code.
+This is a lightweight package with only two widely used dependencies and only a couple hundred line
+of code.
 
 #### Contents
 
@@ -26,7 +26,7 @@ code.
 
 ## Install
 
-Make sure you have Python 3. You can then install `pythonic-config` using `pip`:
+Make sure you have Python 3, then you can install `pythonic-config` using `pip`:
 
 ```bash
 pip install pythonic-config
