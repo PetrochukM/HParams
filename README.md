@@ -108,7 +108,7 @@ In case you want to change one variable at a time, this package supports configu
 command line, for example:
 
 ```console
-foo@bar:~$ python example.py --sorted 'Args(reverse=True)'
+python example.py --sorted='Args(reverse=True)'
 ```
 
 ```python
