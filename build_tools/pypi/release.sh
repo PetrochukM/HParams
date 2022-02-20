@@ -1,4 +1,4 @@
-# NOTE: First, update the version number in `hparams.__init__.__version__``
+# NOTE: First, update the version number in `config.__init__.__version__``
 # REFERENCE: https://packaging.python.org/tutorials/distributing-packages/
 
 # Delete the last wheel

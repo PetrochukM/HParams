@@ -12,12 +12,12 @@ export PYTHONPATH=.
 python --version
 
 if [[ "$RUN_FLAKE8" == "true" ]]; then
-    flake8 hparams/
+    flake8 config/
     flake8 tests/
 fi
 
 run_tests() {
-    python -m pytest tests/ hparams/ --verbose --durations=20 --cov=hparams --doctest-modules
+    python -m pytest tests/ config/ --verbose --durations=20 --cov=config --doctest-modules
 }
 
 run_tests
