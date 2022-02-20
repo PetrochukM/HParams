@@ -10,12 +10,10 @@
 This package allows you to configure functions directly. You will be able to create an intuitive
 configuration file that explicitly sets function arguments, globally.
 
-#### Features
+#### Features 💥
 
 - **Battle-tested over many years** - At WellSaid Labs, we've used this module for years to
   configure our state-of-the-art text-to-speech machine learning scripts.
-- **Approachable and easy-to-use API** - This package has a small API with a
-  handful of primitives.
 - **Fast with little to no runtime overhead** - In addition to being fast, it incorporates caching
   throughout.
 - **Lightweight with only two dependencies** - They themselves are lightweight and widely used for
@@ -47,7 +45,7 @@ Install the latest code via:
 pip install git+https://github.com/PetrochukM/Config.git
 ```
 
-## Usage
+## Usage 🤗
 
 ### Configuring a function
 
@@ -74,9 +72,6 @@ documented function argument.
 
 The simple example above can be extended to create a configuration file. For example below, it shows
 how you might go about configuring a machine learning training run.
-
-With this approach, this configuration file will make it clear which hyperparameters are set and
-where. This improves overall readability of the configuration file.
 
 ```python
 import config
@@ -110,8 +105,10 @@ config.add({
 })
 ```
 
-Also, since the configuration file is written in Python, you can use variables, lambdas, etc to
-further modularize the configuration file.
+With this approach, this configuration file will make it clear which hyperparameters are set and
+where. This improves overall readability of the configuration file. Also, since the configuration
+file is written in Python, you can use variables, lambdas, etc to further modularize the
+configuration file.
 
 ### Configuring via the command line
 
