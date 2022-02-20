@@ -7,8 +7,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Twitter: PetrochukM](https://img.shields.io/twitter/follow/MPetrochuk.svg?style=social)](https://twitter.com/MPetrochuk)
 
-This package allows you to configure functions directly. You will be able to create an intuitive
-type-checked configuration file that explicitly sets function arguments, globally.
+This package allows you to configure functions explicitly and safely. You will be able to create an
+intuitive type-checked configuration file that directly sets function arguments, globally.
 
 This is a lightweight package with only two widely used dependencies and only a couple hundred line
 of code.
