@@ -10,11 +10,11 @@
 This package allows you to configure functions directly. You will be able to create an intuitive
 configuration file that explicitly sets function arguments, globally.
 
-### Features
+#### Features
 
 - **Battle-tested over many years** - At WellSaid Labs, we've used this module for years to
   configure our state-of-the-art text-to-speech machine learning scripts.
-- **Approachable and easy-to-use API** - This package has a small and intuitive API with only a
+- **Approachable and easy-to-use API** - This package has a small API with a
   handful of primitives.
 - **Fast with little to no runtime overhead** - In addition to being fast, it incorporates caching
   throughout.
@@ -22,7 +22,7 @@ configuration file that explicitly sets function arguments, globally.
   type checking and introspection.
 - **Runtime type checking** - The configuration is type-checked at runtime for correctness.
 
-### Contents
+#### Contents
 
 - [Install](#install)
 - [Usage](#usage)
