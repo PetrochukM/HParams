@@ -99,8 +99,8 @@ config.add({
 With this approach, this configuration file will make it clear which (hyper)parameters are set and
 where. This improves overall readability of the configuration file.
 
-Last but not least, the configuration file is written in Python, you can use variables, lambdas, etc
-to further modularize.
+🐍 Last but not least, the configuration file is written in Python, you can use variables, lambdas,
+etc to further modularize.
 
 ### Configuring via the command line
 
