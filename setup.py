@@ -54,7 +54,7 @@ setup_info = dict(
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    keywords="hyperparameters hparams configurable configuration",
+    keywords="python config configurable configuration hparams",
     python_requires=">=3.7",
     # Package info
     packages=find_packages(exclude=["tests"]),
