@@ -1,8 +1,20 @@
 import functools
+import sys
 
 import pytest
 
-from config.config import Args, _get_func_and_arg, add, export, get, parse_cli_args, partial, purge
+from config.config import (
+    Args,
+    _get_func_and_arg,
+    add,
+    export,
+    get,
+    log,
+    parse_cli_args,
+    partial,
+    purge,
+    to_str,
+)
 
 
 def _func(*a, **k):
@@ -264,3 +276,31 @@ def test_parse_cli_args__invalid_eval_expression():
     cli_args = ["--sorted", "reverse=True"]
     with pytest.raises(SyntaxError):
         parse_cli_args(cli_args)
+
+
+def test_to_str():
+    """Test `config.to_str` can handle a basic case."""
+    assert to_str(test_to_str) == "tests.test_config.test_to_str"
+
+
+def test_to_str__no_sys_path():
+    """Test to ensure that `to_str` can handle an absolute path."""
+    original = sys.path
+    sys.path = []
+    assert "tests.test_config.test_to_str__no_sys_path" in (to_str(test_to_str__no_sys_path))
+    sys.path = original
+
+
+def test_to_str__relative_sys_path():
+    """Test to ensure that `to_str` can handle an relative path."""
+    original = sys.path
+    sys.path = [""]
+    expected = "tests.test_config.test_to_str__relative_sys_path"
+    assert expected == (to_str(test_to_str__relative_sys_path))
+    sys.path = original
+
+
+def test_log():
+    """Test `config.log` can handle a basic case."""
+    add({enumerate: Args(start=1)})
+    assert log() == {"#enumerate.start": "1"}

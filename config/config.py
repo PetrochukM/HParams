@@ -9,6 +9,7 @@ import types
 import typing
 import warnings
 from collections import defaultdict
+from pathlib import Path
 from typing import get_type_hints
 
 import executing
@@ -316,3 +317,43 @@ def parse_cli_args(args: typing.List[str]) -> Config:
             )
 
     return return_
+
+
+def to_str(func: ConfigKey):
+    """Get a unique string for each function.
+
+    Example:
+        >>> to_str(to_str)
+        'config.config.to_str'
+        >>> import random
+        >>> config.to_str(random.randint)
+        'random.Random.randint'
+    """
+    try:
+        # NOTE: Unwrap function decorators because they add indirection to the actual function
+        # filename.
+        while hasattr(func, "__wrapped__"):
+            func = func.__wrapped__
+
+        absolute_filename = Path(inspect.getfile(func))
+        # NOTE: `relative_filename` is the longest filename relative to `sys.path` paths but
+        # shorter than a absolute filename.
+        relative_filename = None
+        for path in sys.path:
+            try:
+                new_filename = str(absolute_filename.relative_to(Path(path).absolute()))
+                if relative_filename is None:
+                    relative_filename = new_filename
+                elif len(new_filename) > len(relative_filename):
+                    relative_filename = new_filename
+            except ValueError:
+                pass
+        filename = str(relative_filename if relative_filename is not None else absolute_filename)
+        return filename.replace("/", ".")[:-3] + "." + func.__qualname__
+    except TypeError:
+        return "#" + func.__qualname__
+
+
+def log() -> typing.Dict[str, str]:
+    """Get a loggable flat dictionary of the configuration."""
+    return {f"{to_str(f)}.{k}": repr(v) for f, a in _config.items() for k, v in a.items()}
