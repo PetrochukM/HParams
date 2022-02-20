@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "stkb.rewrap",
+    "TroelsDamgaard.reflow-paragraph",
+    "ban.spellright",
+    "davidanson.vscode-markdownlint",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+  ]
+}

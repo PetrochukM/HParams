@@ -11,11 +11,10 @@ coverage
 pytest
 pytest-cov
 
-# Linting
+# Static-analysis
 flake8
-
-# Auto Formatter
-yapf
+black
+isort
 
 # Release to PyPi
 wheel
