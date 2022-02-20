@@ -2,7 +2,7 @@ import functools
 
 import pytest
 
-from config.config import Params, _get_func_and_arg, add, fill, get, parse_cli_args, partial, purge
+from config.config import Args, _get_func_and_arg, add, export, get, parse_cli_args, partial, purge
 
 
 def _func(*a, **k):
@@ -146,23 +146,23 @@ def test__get_func_and_arg__builtin():
 
 def test_config():
     """Test `config` operations can handle the basic case."""
-    config = {enumerate: Params(start=1)}
-    assert get() == {}
+    config = {enumerate: Args(start=1)}
+    assert export() == {}
     add(config)
-    result = list(enumerate(range(3), start=fill()))
+    result = list(enumerate(range(3), start=get()))
     assert result == [(1, 0), (2, 1), (3, 2)]
-    result = list(enumerate(range(3), **fill()))
+    result = list(enumerate(range(3), **get()))
     assert result == [(1, 0), (2, 1), (3, 2)]
-    assert get() == config
+    assert export() == config
     purge()
-    assert get() == {}
+    assert export() == {}
     with pytest.raises(KeyError):
-        enumerate(range(3), start=fill())
+        enumerate(range(3), start=get())
 
 
 def test_config__unused_func():
     """Test `config.purge` warns if a func configuration isn't used."""
-    add({enumerate: Params(start=1)})
+    add({enumerate: Args(start=1)})
     message = "^These configurations were not used:\nenumerate#start$"
     with pytest.warns(UserWarning, match=message):
         purge()
@@ -170,22 +170,22 @@ def test_config__unused_func():
 
 def test_config__unused_arg():
     """Test `config.purge` warns if a func argument configuration isn't used."""
-    add({sorted: Params(reverse=False, key=None)})
-    sorted([], reverse=fill())
+    add({sorted: Args(reverse=False, key=None)})
+    sorted([], reverse=get())
     message = "^These configurations were not used:\nsorted#key$"
     with pytest.warns(UserWarning, match=message):
         purge()
 
 
 def test_config__incorrect_arg():
-    """Test `config.add` errors if `Params` has non existant arguments."""
+    """Test `config.add` errors if `Args` has non existant arguments."""
     with pytest.raises(ValueError):
-        add({sorted: Params(does_not_exist=False)})
+        add({sorted: Args(does_not_exist=False)})
 
 
 def test_config__variable_args():
     """Test `config.add` handles variable parameters."""
-    add({_func: Params(does_not_exist=False)})
+    add({_func: Args(does_not_exist=False)})
 
 
 def test_config__incorrect_type():
@@ -195,50 +195,50 @@ def test_config__incorrect_type():
         pass
 
     with pytest.raises(TypeError):
-        add({func: Params(a=False)})
+        add({func: Args(a=False)})
 
 
 def test_config__partial():
     """Test `config.partial` configures a partial."""
-    add({enumerate: Params(start=1)})
+    add({enumerate: Args(start=1)})
     result = list(partial(enumerate)(range(3)))
     assert result == [(1, 0), (2, 1), (3, 2)]
 
 
 def test_config__change():
     """Test `config.get` and `config.add` use copies to prevent side-effects."""
-    config = {sorted: Params(reverse=False, key=None)}
-    excepted = {sorted: Params(reverse=False, key=None)}
+    config = {sorted: Args(reverse=False, key=None)}
+    excepted = {sorted: Args(reverse=False, key=None)}
     add(config)
     config[sorted]["reverse"] = True
-    assert get() == excepted
-    config[sorted] = Params()
-    assert get() == excepted
-    gotten = get()
+    assert export() == excepted
+    config[sorted] = Args()
+    assert export() == excepted
+    gotten = export()
     gotten[sorted]["reverse"] = True
-    assert get() == excepted
-    gotten[sorted] = Params()
-    assert get() == excepted
+    assert export() == excepted
+    gotten[sorted] = Args()
+    assert export() == excepted
 
 
 def test_parse_cli_args():
     """Test `config.parse_cli_args` on a basic case."""
-    add({sorted: Params(reverse=False)})
-    cli_args = ["--sorted", "Params(reverse=True)"]
-    assert parse_cli_args(cli_args) == {sorted: Params(reverse=True)}
+    add({sorted: Args(reverse=False)})
+    cli_args = ["--sorted", "Args(reverse=True)"]
+    assert parse_cli_args(cli_args) == {sorted: Args(reverse=True)}
 
 
 def test_parse_cli_args__no_config():
     """Test `config.parse_cli_args` errors when the configuration doesn't exist."""
-    cli_args = ["--sorted", "Params(reverse=True)"]
+    cli_args = ["--sorted", "Args(reverse=True)"]
     with pytest.raises(ValueError, match="Unable to find function 'sorted' in configuration."):
         parse_cli_args(cli_args)
 
 
 def test_parse_cli_args__single_flag():
     """Test `config.parse_cli_args` errors when a single flag is used."""
-    add({sorted: Params(reverse=False)})
-    cli_args = ["-sorted", "Params(reverse=True)"]
+    add({sorted: Args(reverse=False)})
+    cli_args = ["-sorted", "Args(reverse=True)"]
     with pytest.raises(ValueError, match="Unable to parse the command line argument `-sorted`."):
         parse_cli_args(cli_args)
 
@@ -250,19 +250,17 @@ def test_parse_cli_args__no_value():
         parse_cli_args(cli_args)
 
 
-def test_parse_cli_args__no_params():
-    """Test `config.parse_cli_args` errors when `Params` isn't passed in."""
-    add(
-        {sorted: Params(reverse=False)},
-    )
+def test_parse_cli_args__no_args():
+    """Test `config.parse_cli_args` errors when `Args` isn't passed in."""
+    add({sorted: Args(reverse=False)})
     cli_args = ["--sorted", "True"]
-    with pytest.raises(ValueError, match="argument value must be an `Params` object"):
+    with pytest.raises(ValueError, match="argument value must be an `Args` object"):
         parse_cli_args(cli_args)
 
 
 def test_parse_cli_args__invalid_eval_expression():
     """Test `config.parse_cli_args` errors when an invalid expression is passed in."""
-    add({sorted: Params(reverse=False)})
+    add({sorted: Args(reverse=False)})
     cli_args = ["--sorted", "reverse=True"]
     with pytest.raises(SyntaxError):
         parse_cli_args(cli_args)

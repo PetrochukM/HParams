@@ -15,6 +15,24 @@ import executing
 from typeguard import check_type
 
 
+class Args(dict[str, typing.Any]):
+    pass
+
+
+ConfigValue = Args
+ConfigKey = collections.abc.Callable
+Config = dict[ConfigKey, ConfigValue]
+_config: Config = {}
+_count: dict[ConfigKey, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+
+
+class KeyErrorMessage(str):
+    # Learn more:
+    # https://stackoverflow.com/questions/46892261/new-line-on-error-message-in-keyerror-python-3-3
+    def __repr__(self):
+        return str(self)
+
+
 def _get_child_to_parent_map(root: ast.AST) -> dict[ast.AST, ast.AST]:
     """Get a map from child nodes to parent nodes.
 
@@ -71,9 +89,9 @@ def _resolve_func(
 
 def _get_func_and_arg(
     arg: typing.Optional[str] = None,
-    func: typing.Optional[collections.abc.Callable] = None,
+    func: typing.Optional[ConfigKey] = None,
     stack: int = 1,
-) -> tuple[collections.abc.Callable, str]:
+) -> tuple[ConfigKey, str]:
     """Get the calling function and argument that executes this code to get it's input.
 
     NOTE: This may not work with PyTest, learn more:
@@ -110,37 +128,27 @@ def _get_func_and_arg(
             if len(parent.args) == 0:
                 raise SyntaxError("Partial doesn't have arguments.")
             func = _resolve_func(frame, parent.args[0])
-        if inspect.isclass(func):
+        # NOTE: `builtins` like `enumerate` are triggered like a class.
+        if inspect.isclass(func) and not any(func is v for v in frame.f_builtins.values()):
             func = func.__init__
 
     return func, arg
 
 
-class Params(dict[str, typing.Any]):
-    pass
-
-
-Config = dict[collections.abc.Callable, Params]
-_config: Config = {}
-_count: dict[collections.abc.Callable, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-
-
-def fill(
-    arg: typing.Optional[str] = None, func: typing.Optional[collections.abc.Callable] = None
-) -> typing.Any:
+def get(arg: typing.Optional[str] = None, func: typing.Optional[ConfigKey] = None) -> typing.Any:
     """Get the configuration for `func` and `arg`.
 
     NOTE: If `arg` and `func` isn't passed in, then this will attempt to automatically determine
           them by parsing the code with Python AST. For this to succeed, the function and argument
           must be explicitly named in the code base. Here are a couple examples for reference...
 
-          ✅ function(arg=fill())
-          ✅ function(fill('arg'))
-          ✅ arg = fill('arg', function)
+          ✅ function(arg=get())
+          ✅ function(get('arg'))
+          ✅ arg = get('arg', function)
              function(arg=arg)
-          ✅ function(fill()) # NOTE: All arguments for `function` are returned.
+          ✅ function(get()) # NOTE: All arguments for `function` are returned.
           ❌ func = lambda: function\n"
-              func()(arg=fill()) # NOTE: Function isn't named.
+              func()(arg=get()) # NOTE: Function isn't named.
 
     Args:
         arg: The argument name.
@@ -165,13 +173,13 @@ def fill(
         )
         + (
             "\n"
-            "✅ function(arg=fill())\n"
-            "✅ function(fill('arg'))\n"
-            "✅ arg = fill('arg', function)\n"
+            "✅ function(arg=get())\n"
+            "✅ function(get('arg'))\n"
+            "✅ arg = get('arg', function)\n"
             "   function(arg=arg)\n"
-            "✅ function(fill()) # NOTE: All arguments for `function` are returned.\n"
+            "✅ function(get()) # NOTE: All arguments for `function` are returned.\n"
             "❌ func = lambda: function\n"
-            "   func()(arg=fill()) # NOTE: Function isn't named.\n"
+            "   func()(arg=get()) # NOTE: Function isn't named.\n"
         )
     )
 
@@ -182,12 +190,12 @@ def fill(
 
     message = (
         f"`{arg}` for `{func.__qualname__}` has not been configured.\n\n"
-        "It can be configured like so:"
-        f'>>> config.add({{{func.__qualname__}: config.Params({arg}="PLACEHOLDER")}})'
+        "It can be configured like so:\n"
+        f'>>> config.add({{{func.__qualname__}: config.Args({arg}="PLACEHOLDER")}})'
     )
 
     if func not in _config or (arg is not None and arg not in _config[func]):
-        raise KeyError(message)
+        raise KeyError(KeyErrorMessage(message))
 
     if arg is None:
         for key in _config[func].keys():
@@ -203,8 +211,8 @@ def purge():
     global _config, _count
 
     unused = []
-    for func, params in _config.items():
-        for key in params.keys():
+    for func, args in _config.items():
+        for key in args.keys():
             if func not in _count or _count[func][key] == 0:
                 unused.append(f"{func.__qualname__}#{key}")
     if len(unused) > 0:
@@ -217,33 +225,33 @@ def purge():
 atexit.register(purge)
 
 
-def get() -> Config:
-    """Get the global configuration.
+def export() -> Config:
+    """Export the global configuration.
 
     NOTE: It would be an anti-pattern to use this for configuring functions.
     """
     return {k: v.copy() for k, v in _config.items()}
 
 
-def _check_params(func: collections.abc.Callable, params: Params):
-    """Ensure every argument in `params` exists in `func`."""
+def _check_args(func: ConfigKey, args: ConfigValue):
+    """Ensure every argument in `args` exists in `func`."""
     parameters = inspect.signature(func).parameters
 
-    # NOTE: Check the `params` type corresponds with the function signature.
+    # NOTE: Check the `args` type corresponds with the function signature.
     frame = sys._getframe(1)
     while frame.f_code.co_filename == __file__:
         frame = frame.f_back
     context = dict(globals=frame.f_globals, locals=frame.f_locals)
     type_hints = get_type_hints(func)
-    for key, value in params.items():
+    for key, value in args.items():
         if key in parameters and key in type_hints:
             check_type(key, value, type_hints[key], **context)
 
-    # NOTE: Check `params` exist in the function signature.
+    # NOTE: Check `args` exist in the function signature.
     if any(p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD) for p in parameters.values()):
         return
 
-    for key in params.keys():
+    for key in args.keys():
         if key not in parameters:
             raise ValueError(f"{key} is not any argument in {func.__qualname__}")
 
@@ -251,18 +259,18 @@ def _check_params(func: collections.abc.Callable, params: Params):
 def add(config: Config):
     """Add to the global configuration."""
     global _config
-    [_check_params(func, params) for func, params in config.items()]
+    [_check_args(func, args) for func, args in config.items()]
     _config = {**{k: v.copy() for k, v in config.items()}, **_config}
 
 
-def partial(func: collections.abc.Callable) -> collections.abc.Callable:
+def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
     """Get a `partial` for `func` using the global configuration."""
-    return functools.partial(func, **_config[func])
+    return functools.partial(func, *args, **kwargs, **_config[func])
 
 
 def parse_cli_args(args: typing.List[str]) -> Config:
-    """Parse CLI arguments like `['--sorted', 'Params(reverse=True)']` to
-    `{sorted: Params(reverse=True)}`.
+    """Parse CLI arguments like `['--sorted', 'Args(reverse=True)']` to
+    `{sorted: Args(reverse=True)}`.
 
     Args:
         args: List of CLI arguments.
@@ -301,10 +309,10 @@ def parse_cli_args(args: typing.List[str]) -> Config:
 
         return_[funcs[0]] = eval(value)
 
-        if not isinstance(return_[funcs[0]], Params):
+        if not isinstance(return_[funcs[0]], Args):
             raise ValueError(
-                "The command line argument value must be an `Params` object like so "
-                "`--sorted=Params(reverse=True)`."
+                "The command line argument value must be an `Args` object like so "
+                "`--sorted=Args(reverse=True)`."
             )
 
     return return_

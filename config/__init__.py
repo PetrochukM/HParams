@@ -1,4 +1,4 @@
-from config.config import add, fill, get, purge, Params
+from config.config import Args, Config, add, export, get, parse_cli_args, partial, purge
 
-__all__ = ["add", "fill", "get", "purge", "Params"]
+__all__ = ["Args", "Config", "add", "export", "get", "parse_cli_args", "partial", "purge"]
 __version__ = "0.4.0"
