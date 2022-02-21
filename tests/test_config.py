@@ -172,6 +172,14 @@ def test_config():
         enumerate(range(3), start=get())
 
 
+def test_config__repeated():
+    """Test `config` operations can handle if a kwarg is already defined."""
+    config = {enumerate: Args(start=1)}
+    add(config)
+    with pytest.raises(TypeError):
+        enumerate(range(3), start=2, **get())
+
+
 def test_config__unused_func():
     """Test `config.purge` warns if a func configuration isn't used."""
     add({enumerate: Args(start=1)})
