@@ -30,6 +30,10 @@ Config = typing.Dict[ConfigKey, ConfigValue]
 _config: Config = {}
 _count: dict[ConfigKey, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 _code_to_func: dict[CodeType, ConfigKey] = {}
+_get_func_and_arg_cache: dict[
+    tuple[CodeType, int, int, typing.Optional[ConfigKey], typing.Optional[str], int],
+    tuple[ConfigKey, str],
+] = {}
 
 
 class KeyErrorMessage(str):
@@ -110,13 +114,18 @@ def _get_func_and_arg(
     NOTE: Use `executing` until Python 3.11, learn more:
     https://github.com/alexmojaki/executing/issues/24
     https://www.python.org/dev/peps/pep-0657/
-
-    TODO: Cache the function similar to `executing_cache` in the `executing` package.
     """
     if func is not None and arg is not None:
         return func, arg
 
     frame = sys._getframe(stack)
+    # NOTE: This was inspired by `executing.Source.__executing_cache`.
+    key = (frame.f_code, id(frame.f_code), frame.f_lasti, func, arg, stack)
+    try:
+        return _get_func_and_arg_cache[key]
+    except KeyError:
+        pass
+
     exec_ = executing.Source.executing(frame)
     if frame.f_code.co_filename == "<stdin>":
         raise NotImplementedError("REPL is not supported.")
@@ -141,6 +150,8 @@ def _get_func_and_arg(
         # NOTE: `builtins` like `enumerate` are triggered like a class.
         if inspect.isclass(func) and not _is_builtin(func):
             func = func.__init__
+
+    _get_func_and_arg_cache[key] = (func, arg)
 
     return func, arg
 

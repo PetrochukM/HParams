@@ -174,6 +174,16 @@ def test_config():
         enumerate(range(3), start=get())
 
 
+def test_config__cache():
+    """Test `config` operations are cached."""
+    add({sorted: Args(reverse=True, key=lambda k: 10 if k == 0 else k)})
+    for _ in range(500):
+        result = list(sorted(range(3), reverse=get(), key=get()))
+        assert result == [0, 2, 1]
+        result = list(sorted(range(3), **get()))
+        assert result == [0, 2, 1]
+
+
 def test_config__repeated():
     """Test `config` operations can handle if a kwarg is already defined."""
     config = {enumerate: Args(start=1)}
