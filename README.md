@@ -43,7 +43,7 @@ pip install git+https://github.com/PetrochukM/Config.git
 
 ### Configuring a function
 
-Any function can be configured, and then used anywhere, see below -
+Any function can be configured, and then used anywhere, see below:
 
 ```python
 import config
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
 In a large code base, it might be hard to tell if the configuration has been set for every function
 call. In this case, we've exposed `config.profile` which can double check every function call
-against the configuration, see below...
+against the configuration, see below:
 
 ```python
 import sys
