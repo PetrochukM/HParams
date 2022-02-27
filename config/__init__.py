@@ -7,6 +7,7 @@ from config.config import (
     log,
     parse_cli_args,
     partial,
+    profile,
     purge,
     to_str,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "log",
     "parse_cli_args",
     "partial",
+    "profile",
     "purge",
     "to_str",
 ]

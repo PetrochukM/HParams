@@ -1,5 +1,6 @@
 import functools
 import sys
+import warnings
 
 import pytest
 
@@ -12,6 +13,7 @@ from config.config import (
     log,
     parse_cli_args,
     partial,
+    profile,
     purge,
     to_str,
 )
@@ -312,3 +314,22 @@ def test_log():
     """Test `config.log` can handle a basic case."""
     add({enumerate: Args(start=1)})
     assert log() == {"#enumerate.start": "1"}
+
+
+def test_profile():
+    """Test `config.profile` can handle a basic case."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+
+    def configured(a=5):
+        pass
+
+    add({configured: Args(a=1)})
+    with pytest.warns(UserWarning):
+        configured()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        configured(a=get())
+
+    sys.setprofile(profile_)

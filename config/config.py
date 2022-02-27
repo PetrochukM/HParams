@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import atexit
+import builtins
 import collections
 import functools
 import inspect
@@ -12,6 +13,7 @@ import typing
 import warnings
 from collections import defaultdict
 from pathlib import Path
+from types import CodeType
 from typing import get_type_hints
 
 import executing
@@ -27,6 +29,7 @@ ConfigKey = collections.abc.Callable
 Config = typing.Dict[ConfigKey, ConfigValue]
 _config: Config = {}
 _count: dict[ConfigKey, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+_code_to_func: dict[CodeType, ConfigKey] = {}
 
 
 class KeyErrorMessage(str):
@@ -90,6 +93,10 @@ def _resolve_func(
     return _find_object(frame, node.id)
 
 
+def _is_builtin(func: collections.abc.Callable):
+    return any(func is v for v in vars(builtins).values())
+
+
 def _get_func_and_arg(
     arg: typing.Optional[str] = None,
     func: typing.Optional[ConfigKey] = None,
@@ -132,7 +139,7 @@ def _get_func_and_arg(
                 raise SyntaxError("Partial doesn't have arguments.")
             func = _resolve_func(frame, parent.args[0])
         # NOTE: `builtins` like `enumerate` are triggered like a class.
-        if inspect.isclass(func) and not any(func is v for v in frame.f_builtins.values()):
+        if inspect.isclass(func) and not _is_builtin(func):
             func = func.__init__
 
     return func, arg
@@ -262,8 +269,14 @@ def _check_args(func: ConfigKey, args: ConfigValue):
 def add(config: Config):
     """Add to the global configuration."""
     global _config
+    global _code_to_func
+
     [_check_args(func, args) for func, args in config.items()]
     _config = {**{k: v.copy() for k, v in config.items()}, **_config}
+
+    functions = [k for k in _config.keys() if not _is_builtin(k)]
+    _code_to_func = {f.__code__: f for f in functions}
+    assert len(_code_to_func) == len(functions), "Invariant error"
 
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
@@ -359,3 +372,32 @@ def to_str(func: ConfigKey):
 def log() -> typing.Dict[str, str]:
     """Get a loggable flat dictionary of the configuration."""
     return {f"{to_str(f)}.{k}": repr(v) for f, a in _config.items() for k, v in a.items()}
+
+
+def profile(frame, event, arg):  # pragma: no cover
+    """Warn the user if a function is run without it's configured arguments.
+
+    Usage:
+        >>> sys.setprofile(config.profile)
+
+    Args:
+        See docs for `sys.setprofile`.
+    """
+    if (
+        event != "call"
+        or not hasattr(frame, "f_code")
+        or not hasattr(frame, "f_back")
+        or frame.f_code.co_name == "<module>"
+        or not hasattr(frame.f_back, "f_code")
+        or frame.f_code not in _code_to_func
+    ):
+        return
+
+    function = _code_to_func[frame.f_code]
+    kwargs = _config[function]
+    if not all(frame.f_locals[k] == v for k, v in kwargs.items()):
+        warnings.warn(
+            f"Function `{to_str(function)}` was called at "
+            f"({frame.f_back.f_code.co_filename}:{frame.f_back.f_lineno}) with different arguments "
+            "than those that were configured."
+        )

@@ -22,6 +22,7 @@ of code.
   - [Configuring via the command line](#configuring-via-the-command-line)
   - [Logging the configuration](#logging-the-configuration)
   - [Advanced: Sharing configurations between processes](#advanced-sharing-configurations-between-processes)
+  - [Advanced: Ensuring the configuration is used](#advanced-ensuring-the-configuration-is-used)
 - [How does this work?](#how-does-this-work)
 
 ## Install
@@ -149,6 +150,26 @@ if __name__ == "__main__":
     process = Process(target=handler, args=(config.export(),))
     process.start()
     process.join()
+```
+
+### Advanced: Ensuring the configuration is used
+
+In a large code base, it might be hard to tell if the configuration has been set for every function
+call. In this case, we've exposed `config.profile` which can double check every function call
+against the configuration, see below...
+
+```python
+import sys
+import config
+
+def configured(a=111):
+    pass
+
+sys.setprofile(config.profile)
+config.add({configured: config.Args(a=1)})
+
+configured()  # `config.profile` issues a WARNING!
+configured(a=config.get())
 ```
 
 ## How does this work?
