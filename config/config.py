@@ -389,7 +389,7 @@ def profile(frame, event, arg):  # pragma: no cover
     """Warn the user if a function is run without it's configured arguments.
 
     Usage:
-        >>> sys.setprofile(config.profile)
+        >>> sys.setprofile(profile)
 
     Args:
         See docs for `sys.setprofile`.
