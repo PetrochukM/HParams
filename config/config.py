@@ -293,7 +293,7 @@ def _check_args(func: ConfigKey, args: ConfigValue):
 
     for key in args.keys():
         if key not in parameters:
-            raise ValueError(f"{key} is not any argument in {func.__qualname__}")
+            raise ValueError(f"`{key}` is not an argument to {func.__qualname__}")
 
 
 def add(config: Config):
@@ -302,7 +302,12 @@ def add(config: Config):
     global _code_to_func
 
     [_check_args(func, args) for func, args in config.items()]
-    _config = {**{k: v.copy() for k, v in config.items()}, **_config}
+
+    for key, value in config.items():
+        if key in _config:
+            _config[key] = Args({**_config[key], **value})
+        else:
+            _config[key] = value.copy()
 
     functions = [k for k in _config.keys() if not _is_builtin(k)]
     _code_to_func = {(f.__init__ if inspect.isclass(f) else f).__code__: f for f in functions}

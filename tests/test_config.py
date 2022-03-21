@@ -279,6 +279,18 @@ def test_config__class():
     sys.setprofile(profile_)
 
 
+def test_config__merge_configs():
+    """Test `config` merges configs correctly."""
+    add({Obj: Args(a=1)})
+    add({Obj: Args(b=2)})
+    result = get(func=Obj)
+    assert result == {"a": 1, "b": 2}
+
+    add({Obj: Args(a=3)})
+    result = get(func=Obj)
+    assert result == {"a": 3, "b": 2}
+
+
 def test_parse_cli_args():
     """Test `config.parse_cli_args` on a basic case."""
     add({sorted: Args(reverse=False)})
