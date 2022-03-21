@@ -69,6 +69,13 @@ class OtherObj(Obj):
         self.obj = super().new(*a, **k)
 
 
+class DecObj(Obj):
+    @functools.lru_cache()
+    @functools.lru_cache()
+    def __init__(self, *a, **k) -> None:
+        super().__init__(*a, **k)
+
+
 def test__get_func_and_arg():
     """Test `_get_func_and_arg` can handle the basic case."""
     result = _func(a=_get_func_and_arg())
@@ -282,16 +289,28 @@ def test_config__class():
     """Test `config` can handle a class and class functions."""
     profile_ = sys.getprofile()
     sys.setprofile(profile)
+
     add({Obj: Args(a=1), Obj.func: Args(b=2)})
     obj = Obj(**get())
     assert obj.results == (tuple(), {"a": 1})
+
     obj = partial(Obj)()
     assert obj.results == (tuple(), {"a": 1})
+
     result = obj.func(**get())
     assert result == (tuple(), {"b": 2})
+
     result = partial(obj.func)()
     assert result == (tuple(), {"b": 2})
+
     sys.setprofile(profile_)
+
+
+def test_config__class_init():
+    """Test `config` errors if unbounded method `__init__` method is used."""
+    add({Obj.__init__: Args(a=1)})
+    with pytest.raises(KeyError):
+        Obj(**get())
 
 
 def test_config__decorators():
@@ -325,6 +344,20 @@ def test_config__decorators():
     result = obj.dec_func(**get())
     assert result == (tuple(), {"c": 7})
 
+    sys.setprofile(profile_)
+
+
+def test_config__dec_class():
+    """Test `config` can handle decorated class init."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+    add({DecObj: Args(a=1)})
+    obj = DecObj(**get())
+    assert obj.results == (tuple(), {"a": 1})
+    assert partial(DecObj)().results == (tuple(), {"a": 1})
+    message = "^Function `tests.test_config.DecObj` was called at"
+    with pytest.warns(UserWarning, match=message):
+        assert DecObj(a=2).results == (tuple(), {"a": 2})
     sys.setprofile(profile_)
 
 

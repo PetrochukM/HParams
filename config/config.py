@@ -318,9 +318,9 @@ def add(config: Config):
         else:
             _config[key] = value.copy()
 
-    functions = [k for k in _config.keys() if not _is_builtin(k)]
-    _code_to_func = {(f.__init__ if inspect.isclass(f) else f).__code__: f for f in functions}
-    assert len(_code_to_func) == len(functions), "Invariant error"
+    funcs = [k for k in _config.keys() if not _is_builtin(k)]
+    _code_to_func = {_unwrap(f.__init__ if inspect.isclass(f) else f).__code__: f for f in funcs}
+    assert len(_code_to_func) == len(funcs), "Invariant error"
 
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
