@@ -132,6 +132,12 @@ def _get_func_and_arg(
     assert len(exec_.statements) == 1, "Invariant failure."
     tree = next(iter(exec_.statements))
     parents = _get_child_to_parent_map(tree)
+    if exec_.node is None and "pytest" in sys.modules:
+        raise RuntimeError(
+            "This issue may have been triggered:\n"
+            "https://github.com/alexmojaki/executing/issues/2\n\n"
+            "If so, please don't run this in a PyTest `assert` statement."
+        )
     parent = parents[exec_.node]
 
     if arg is None:
@@ -210,12 +216,19 @@ def get(arg: typing.Optional[str] = None, func: typing.Optional[ConfigKey] = Non
         raise SyntaxError(message) from e
 
     message = (
+        f"`{func.__qualname__}` has not been configured.\n\n"
+        "It can be configured like so:\n"
+        f'>>> config.add({{{func.__qualname__}: config.Args(placeholder="PLACEHOLDER")}})'
+    )
+    if func not in _config:
+        raise KeyError(KeyErrorMessage(message))
+
+    message = (
         f"`{arg}` for `{func.__qualname__}` has not been configured.\n\n"
         "It can be configured like so:\n"
         f'>>> config.add({{{func.__qualname__}: config.Args({arg}="PLACEHOLDER")}})'
     )
-
-    if func not in _config or (arg is not None and arg not in _config[func]):
+    if arg is not None and arg not in _config[func]:
         raise KeyError(KeyErrorMessage(message))
 
     if arg is None:
