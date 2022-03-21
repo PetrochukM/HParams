@@ -325,7 +325,10 @@ def add(config: Config):
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
     """Get a `partial` for `func` using the global configuration."""
-    return functools.partial(func, *args, **kwargs, **_config[_unwrap(func)])
+    key = _unwrap(func)
+    if key not in _config:
+        raise KeyError(f"`{key.__qualname__}` has not been configured.")
+    return functools.partial(func, *args, **kwargs, **_config[key])
 
 
 def parse_cli_args(args: typing.List[str]) -> Config:
