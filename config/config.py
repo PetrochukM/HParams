@@ -450,7 +450,10 @@ def profile(frame, event, arg):  # pragma: no cover
         is_matching = all(f_locals[k] is v for k, v in items)
     else:
         kwargs = f_locals[var]
-        is_matching = all((kwargs[k] if k in kwargs else f_locals[k]) is v for k, v in items)
+        is_matching = all(
+            (kwargs[k] is v) if k in kwargs else (f_locals[k] is v if k in f_locals else False)
+            for k, v in items
+        )
 
     if not is_matching:
         warnings.warn(

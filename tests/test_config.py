@@ -361,6 +361,18 @@ def test_config__dec_class():
     sys.setprofile(profile_)
 
 
+def test_config__var_kwargs():
+    """Test `config` can handle if the configured argument isn't passed into a variable key word
+    parameter."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+    add({_func: Args(b=1)})
+    message = "^Function `tests.test_config._func` was called at"
+    with pytest.warns(UserWarning, match=message):
+        assert _func() == (tuple(), {})
+    sys.setprofile(profile_)
+
+
 def test_config__merge_configs():
     """Test `config` merges configs correctly."""
     add({Obj: Args(a=1)})
