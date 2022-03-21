@@ -447,10 +447,10 @@ def profile(frame, event, arg):  # pragma: no cover
     params = inspect.signature(function).parameters
     var = next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
     if var is None:
-        is_matching = all(f_locals[k] == v for k, v in items)
+        is_matching = all(f_locals[k] is v for k, v in items)
     else:
         kwargs = f_locals[var]
-        is_matching = all((kwargs[k] if k in kwargs else f_locals[k]) == v for k, v in items)
+        is_matching = all((kwargs[k] if k in kwargs else f_locals[k]) is v for k, v in items)
 
     if not is_matching:
         warnings.warn(
