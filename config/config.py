@@ -101,6 +101,15 @@ def _is_builtin(func: collections.abc.Callable):
     return any(func is v for v in vars(builtins).values())
 
 
+def _unwrap(func: typing.Callable):
+    """Unwrap decorated and bounded function."""
+    if hasattr(func, "__func__"):
+        func = func.__func__
+    while hasattr(func, "__wrapped__"):
+        func = func.__wrapped__
+    return func
+
+
 def _get_func_and_arg(
     arg: typing.Optional[str] = None,
     func: typing.Optional[ConfigKey] = None,
@@ -153,8 +162,7 @@ def _get_func_and_arg(
             if len(parent.args) == 0:
                 raise SyntaxError("Partial doesn't have arguments.")
             func = _resolve_func(frame, parent.args[0])
-        if hasattr(func, "__func__"):
-            func = func.__func__
+        func = _unwrap(func)
 
     _get_func_and_arg_cache[key] = (func, arg)
 
@@ -304,6 +312,7 @@ def add(config: Config):
     [_check_args(func, args) for func, args in config.items()]
 
     for key, value in config.items():
+        key = _unwrap(key)
         if key in _config:
             _config[key] = Args({**_config[key], **value})
         else:
@@ -316,8 +325,7 @@ def add(config: Config):
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
     """Get a `partial` for `func` using the global configuration."""
-    key = func.__func__ if hasattr(func, "__func__") else func
-    return functools.partial(func, *args, **kwargs, **_config[key])
+    return functools.partial(func, *args, **kwargs, **_config[_unwrap(func)])
 
 
 def parse_cli_args(args: typing.List[str]) -> Config:

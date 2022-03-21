@@ -27,6 +27,17 @@ def _other_func(*a, **k):
     return _func(*a, **k)
 
 
+@functools.lru_cache()
+def _dec_func(*a, **k):
+    return _func(*a, **k)
+
+
+@functools.lru_cache()
+@functools.lru_cache()
+def _dec_other_func(*a, **k):
+    return _func(*a, **k)
+
+
 _func.attr = _other_func
 _func.attr.bttr = _other_func
 
@@ -36,6 +47,10 @@ class Obj:
         self.results = (a, k)
 
     def func(self, *a, **k):
+        return _func(*a, **k)
+
+    @functools.lru_cache()
+    def dec_func(self, *a, **k):
         return _func(*a, **k)
 
     def __call__(self, *a, **k):
@@ -276,6 +291,40 @@ def test_config__class():
     assert result == (tuple(), {"b": 2})
     result = partial(obj.func)()
     assert result == (tuple(), {"b": 2})
+    sys.setprofile(profile_)
+
+
+def test_config__decorators():
+    """Test `config` unwraps decorators."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+    add({_dec_func: Args(a=1), _dec_other_func: Args(b=2)})
+    result = _dec_func(**get())
+    assert result == (tuple(), {"a": 1})
+    result = _dec_other_func(**get())
+    assert result == (tuple(), {"b": 2})
+
+    add({_dec_func.__wrapped__: Args(a=3), _dec_other_func.__wrapped__: Args(b=4)})
+    result = _dec_func(**get())
+    assert result == (tuple(), {"a": 3})
+    result = _dec_other_func(**get())
+    assert result == (tuple(), {"b": 4})
+
+    add({_dec_other_func.__wrapped__.__wrapped__: Args(b=5)})
+    result = _dec_other_func(**get())
+    assert result == (tuple(), {"b": 5})
+
+    message = "^Function `tests.test_config._dec_other_func` was called at"
+    with pytest.warns(UserWarning, match=message):
+        assert _dec_other_func(b=6) == (tuple(), {"b": 6})
+
+    assert partial(_dec_other_func)() == (tuple(), {"b": 5})
+
+    add({Obj.dec_func: Args(c=7)})
+    obj = Obj()
+    result = obj.dec_func(**get())
+    assert result == (tuple(), {"c": 7})
+
     sys.setprofile(profile_)
 
 
