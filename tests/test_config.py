@@ -76,6 +76,14 @@ class DecObj(Obj):
         super().__init__(*a, **k)
 
 
+class NewObj:
+    def __new__(cls, *_, **__):
+        return super().__new__(cls)
+
+    def __init__(self, *a, **k) -> None:
+        self.results = (a, k)
+
+
 def test__get_func_and_arg():
     """Test `_get_func_and_arg` can handle the basic case."""
     result = _func(a=_get_func_and_arg())
@@ -358,6 +366,20 @@ def test_config__dec_class():
     message = "^Function `tests.test_config.DecObj` was called at"
     with pytest.warns(UserWarning, match=message):
         assert DecObj(a=2).results == (tuple(), {"a": 2})
+    sys.setprofile(profile_)
+
+
+def test_config__new_class():
+    """Test `config` can handle class with `__new__` implemented."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+    add({NewObj: Args(a=1, k=2)})
+    obj = NewObj(**get())
+    assert obj.results == (tuple(), {"a": 1, "k": 2})
+    assert partial(NewObj)().results == (tuple(), {"a": 1, "k": 2})
+    message = "^Function `tests.test_config.NewObj` was called at"
+    with pytest.warns(UserWarning, match=message):
+        assert NewObj(a=3).results == (tuple(), {"a": 3})
     sys.setprofile(profile_)
 
 

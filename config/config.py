@@ -305,6 +305,17 @@ def _check_args(func: ConfigKey, args: ConfigValue):
             raise ValueError(f"`{key}` is not an argument to {func.__qualname__}")
 
 
+def _get_funcs(func: typing.Callable) -> typing.List[typing.Callable]:
+    """Get a list of functions `func` may be referring to."""
+    if inspect.isclass(func) and func.__new__ is object.__new__:
+        funcs = [func.__init__]
+    elif inspect.isclass(func):
+        funcs = [func.__init__, func.__new__]
+    else:
+        funcs = [func]
+    return [_unwrap(f) for f in funcs]
+
+
 def add(config: Config):
     """Add to the global configuration."""
     global _config
@@ -320,8 +331,8 @@ def add(config: Config):
             _config[key] = value.copy()
 
     funcs = [k for k in _config.keys() if not _is_builtin(k)]
-    _code_to_func = {_unwrap(f.__init__ if inspect.isclass(f) else f).__code__: f for f in funcs}
-    assert len(_code_to_func) == len(funcs), "Invariant error"
+    assert len(set(_get_funcs(f)[0].__code__ for f in funcs)) == len(funcs), "Invariant error"
+    _code_to_func = {k.__code__: f for f in funcs for k in _get_funcs(f)}
 
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
@@ -444,7 +455,19 @@ def profile(frame, event, arg):  # pragma: no cover
     function = _code_to_func[frame.f_code]
     items = _config[function].items()
     f_locals = frame.f_locals
-    params = inspect.signature(function).parameters
+
+    # NOTE: For a class, there are two possible signatures, `__new__` and `__init__`. These
+    # functions must accept the same arguments. The below will pick the correct signature based on
+    # `f_locals`.
+    if inspect.isclass(function) and function.__new__ is not object.__new__:
+        params = inspect.signature(function.__new__).parameters
+        first = next(iter(params), None)
+        if first not in f_locals or not inspect.isclass(f_locals[first]):
+            params = inspect.signature(function.__init__).parameters
+    else:
+        params = inspect.signature(function).parameters
+
+    # Check if all configurations are present in `f_locals`.
     var = next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
     if var is None:
         is_matching = all(f_locals[k] is v for k, v in items)
