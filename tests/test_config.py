@@ -341,7 +341,7 @@ def test_config__decorators():
     result = _dec_other_func(**get())
     assert result == (tuple(), {"b": 5})
 
-    message = "^Function `tests.test_config._dec_other_func` was called at"
+    message = "^Function `tests.test_config._dec_other_func` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert _dec_other_func(b=6) == (tuple(), {"b": 6})
 
@@ -363,7 +363,7 @@ def test_config__dec_class():
     obj = DecObj(**get())
     assert obj.results == (tuple(), {"a": 1})
     assert partial(DecObj)().results == (tuple(), {"a": 1})
-    message = "^Function `tests.test_config.DecObj` was called at"
+    message = "^Function `tests.test_config.DecObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert DecObj(a=2).results == (tuple(), {"a": 2})
     sys.setprofile(profile_)
@@ -377,7 +377,7 @@ def test_config__new_class():
     obj = NewObj(**get())
     assert obj.results == (tuple(), {"a": 1, "k": 2})
     assert partial(NewObj)().results == (tuple(), {"a": 1, "k": 2})
-    message = "^Function `tests.test_config.NewObj` was called at"
+    message = "^Function `tests.test_config.NewObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert NewObj(a=3).results == (tuple(), {"a": 3})
     sys.setprofile(profile_)
@@ -389,7 +389,7 @@ def test_config__var_kwargs():
     profile_ = sys.getprofile()
     sys.setprofile(profile)
     add({_func: Args(b=1)})
-    message = "^Function `tests.test_config._func` was called at"
+    message = "^Function `tests.test_config._func` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert _func() == (tuple(), {})
     sys.setprofile(profile_)

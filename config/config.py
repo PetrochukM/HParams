@@ -8,6 +8,7 @@ import functools
 import inspect
 import sys
 import textwrap
+import traceback
 import types
 import typing
 import warnings
@@ -492,12 +493,9 @@ def profile(frame, event, arg):  # pragma: no cover
         )
 
     if not is_matching:
-        frame = frame.f_back
-        while function.__name__ not in frame.f_globals and function.__name__ not in frame.f_locals:
-            frame = frame.f_back
+        traceback_ = "".join(traceback.format_stack(f=frame))
         message = (
-            f"Function `{to_str(function)}` was called at "
-            f"({frame.f_code.co_filename}:{frame.f_lineno}) with different arguments "
-            "than those that were configured."
+            f"Function `{to_str(function)}` with different arguments than those that were "
+            f"configured.\n\nTraceback\n{traceback_}"
         )
         _call_once(warnings.warn, message)
