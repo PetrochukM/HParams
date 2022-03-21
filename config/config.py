@@ -268,6 +268,7 @@ def purge(usage=True):
     _code_to_func = {}
 
     if usage:
+        _call_once.cache_clear()
         _count = defaultdict(lambda: defaultdict(int))
 
 
@@ -333,6 +334,7 @@ def add(config: Config):
     funcs = [k for k in _config.keys() if not _is_builtin(k)]
     assert len(set(_get_funcs(f)[0].__code__ for f in funcs)) == len(funcs), "Invariant error"
     _code_to_func = {k.__code__: f for f in funcs for k in _get_funcs(f)}
+    _call_once.cache_clear()
 
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
@@ -433,6 +435,17 @@ def log() -> typing.Dict[str, str]:
     return {f"{to_str(f)}.{k}": repr(v) for f, a in _config.items() for k, v in a.items()}
 
 
+_CallOnceReturnType = typing.TypeVar("_CallOnceReturnType")
+
+
+@functools.lru_cache(maxsize=None)
+def _call_once(
+    callable_: typing.Callable[..., _CallOnceReturnType], *args, **kwargs
+) -> _CallOnceReturnType:
+    """Call `callable_` only once with `args` and `kwargs` within the same process."""
+    return callable_(*args, **kwargs)
+
+
 def profile(frame, event, arg):  # pragma: no cover
     """Warn the user if a function is run without it's configured arguments.
 
@@ -479,8 +492,12 @@ def profile(frame, event, arg):  # pragma: no cover
         )
 
     if not is_matching:
-        warnings.warn(
+        frame = frame.f_back
+        while function.__name__ not in frame.f_globals and function.__name__ not in frame.f_locals:
+            frame = frame.f_back
+        message = (
             f"Function `{to_str(function)}` was called at "
-            f"({frame.f_back.f_code.co_filename}:{frame.f_back.f_lineno}) with different arguments "
+            f"({frame.f_code.co_filename}:{frame.f_lineno}) with different arguments "
             "than those that were configured."
         )
+        _call_once(warnings.warn, message)

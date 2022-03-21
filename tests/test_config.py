@@ -485,17 +485,31 @@ def test_profile():
     profile_ = sys.getprofile()
     sys.setprofile(profile)
 
-    def configured(a=5):
-        pass
-
-    add({configured: Args(a=1)})
+    add({_func: Args(a=1)})
     with pytest.warns(UserWarning):
-        configured()
+        _func()
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        configured(a=get())
+        _func(a=get())
         purge()
-        configured()
+        _func()
+
+    sys.setprofile(profile_)
+
+
+def test_profile__repeated_warning():
+    """Test `config.profile` doesn't throw repeated warnings."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+
+    add({_func: Args(a=1)})
+    with pytest.warns(UserWarning) as record:
+        for _ in range(10):
+            _func()
+    assert len(record) == 1
+
+    with pytest.warns(UserWarning):
+        _func()
 
     sys.setprofile(profile_)
