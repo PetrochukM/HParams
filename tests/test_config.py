@@ -461,5 +461,7 @@ def test_profile():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         configured(a=get())
+        purge()
+        configured()
 
     sys.setprofile(profile_)

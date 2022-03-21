@@ -253,7 +253,7 @@ def purge(usage=True):
     Args:
         usage: Analyze and clear the usage counter instead of persisting it.
     """
-    global _config, _count
+    global _config, _count, _code_to_func
 
     if usage:
         unused = []
@@ -265,6 +265,7 @@ def purge(usage=True):
             warnings.warn("These configurations were not used:\n" + "\n".join(unused))
 
     _config = {}
+    _code_to_func = {}
 
     if usage:
         _count = defaultdict(lambda: defaultdict(int))
