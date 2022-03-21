@@ -63,7 +63,7 @@ def test__get_func_and_arg():
 def test__get_func_and_arg__class_init():
     """Test `_get_func_and_arg` can handle a class instantiation."""
     result = Obj(a=_get_func_and_arg()).results
-    assert result == (tuple(), {"a": (Obj.__init__, "a")})
+    assert result == (tuple(), {"a": (Obj, "a")})
 
 
 def test__get_func_and_arg__class_func():
@@ -81,7 +81,7 @@ def test__get_func_and_arg__class_attribute():
 def test__get_func_and_arg__class_static_attribute():
     """Test `_get_func_and_arg` can handle static attributes."""
     result = OtherObj().static_obj.new(a=_get_func_and_arg()).results
-    assert result == (tuple(), {"a": (OtherObj.static_obj.new, "a")})
+    assert result == (tuple(), {"a": (OtherObj.static_obj.new.__func__, "a")})
 
 
 def test__get_func_and_arg__class_special():
@@ -261,6 +261,22 @@ def test_config__change():
     assert export() == excepted
     gotten[sorted] = Args()
     assert export() == excepted
+
+
+def test_config__class():
+    """Test `config` can handle a class and class functions."""
+    profile_ = sys.getprofile()
+    sys.setprofile(profile)
+    add({Obj: Args(a=1), Obj.func: Args(b=2)})
+    obj = Obj(**get())
+    assert obj.results == (tuple(), {"a": 1})
+    obj = partial(Obj)()
+    assert obj.results == (tuple(), {"a": 1})
+    result = obj.func(**get())
+    assert result == (tuple(), {"b": 2})
+    result = partial(obj.func)()
+    assert result == (tuple(), {"b": 2})
+    sys.setprofile(profile_)
 
 
 def test_parse_cli_args():

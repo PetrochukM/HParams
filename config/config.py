@@ -153,9 +153,8 @@ def _get_func_and_arg(
             if len(parent.args) == 0:
                 raise SyntaxError("Partial doesn't have arguments.")
             func = _resolve_func(frame, parent.args[0])
-        # NOTE: `builtins` like `enumerate` are triggered like a class.
-        if inspect.isclass(func) and not _is_builtin(func):
-            func = func.__init__
+        if hasattr(func, "__func__"):
+            func = func.__func__
 
     _get_func_and_arg_cache[key] = (func, arg)
 
@@ -306,13 +305,14 @@ def add(config: Config):
     _config = {**{k: v.copy() for k, v in config.items()}, **_config}
 
     functions = [k for k in _config.keys() if not _is_builtin(k)]
-    _code_to_func = {f.__code__: f for f in functions}
+    _code_to_func = {(f.__init__ if inspect.isclass(f) else f).__code__: f for f in functions}
     assert len(_code_to_func) == len(functions), "Invariant error"
 
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
     """Get a `partial` for `func` using the global configuration."""
-    return functools.partial(func, *args, **kwargs, **_config[func])
+    key = func.__func__ if hasattr(func, "__func__") else func
+    return functools.partial(func, *args, **kwargs, **_config[key])
 
 
 def parse_cli_args(args: typing.List[str]) -> Config:
@@ -425,8 +425,17 @@ def profile(frame, event, arg):  # pragma: no cover
         return
 
     function = _code_to_func[frame.f_code]
-    kwargs = _config[function]
-    if not all(frame.f_locals[k] == v for k, v in kwargs.items()):
+    items = _config[function].items()
+    f_locals = frame.f_locals
+    params = inspect.signature(function).parameters
+    var = next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
+    if var is None:
+        is_matching = all(f_locals[k] == v for k, v in items)
+    else:
+        kwargs = f_locals[var]
+        is_matching = all((kwargs[k] if k in kwargs else f_locals[k]) == v for k, v in items)
+
+    if not is_matching:
         warnings.warn(
             f"Function `{to_str(function)}` was called at "
             f"({frame.f_back.f_code.co_filename}:{frame.f_back.f_lineno}) with different arguments "
