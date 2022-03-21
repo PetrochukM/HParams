@@ -227,20 +227,27 @@ def get(arg: typing.Optional[str] = None, func: typing.Optional[ConfigKey] = Non
     return _config[func] if arg is None else _config[func][arg]
 
 
-def purge():
-    """Delete the global configuration."""
+def purge(usage=True):
+    """Delete the global configuration.
+
+    Args:
+        usage: Analyze and clear the usage counter instead of persisting it.
+    """
     global _config, _count
 
-    unused = []
-    for func, args in _config.items():
-        for key in args.keys():
-            if func not in _count or _count[func][key] == 0:
-                unused.append(f"{func.__qualname__}#{key}")
-    if len(unused) > 0:
-        warnings.warn("These configurations were not used:\n" + "\n".join(unused))
+    if usage:
+        unused = []
+        for func, args in _config.items():
+            for key in args.keys():
+                if func not in _count or _count[func][key] == 0:
+                    unused.append(f"{func.__qualname__}#{key}")
+        if len(unused) > 0:
+            warnings.warn("These configurations were not used:\n" + "\n".join(unused))
 
     _config = {}
-    _count = defaultdict(lambda: defaultdict(int))
+
+    if usage:
+        _count = defaultdict(lambda: defaultdict(int))
 
 
 atexit.register(purge)
