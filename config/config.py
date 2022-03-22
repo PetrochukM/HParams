@@ -20,6 +20,8 @@ from typing import get_type_hints
 import executing
 from typeguard import check_type
 
+from config.trace import _unwrap, set_trace, unset_trace
+
 
 class Args(typing.Dict[str, typing.Any]):
     pass
@@ -35,6 +37,7 @@ _get_func_and_arg_cache: dict[
     tuple[CodeType, int, int, typing.Optional[ConfigKey], typing.Optional[str], int],
     tuple[ConfigKey, str],
 ] = {}
+_fast_trace_enabled: bool = False
 
 
 class KeyErrorMessage(str):
@@ -100,15 +103,6 @@ def _resolve_func(
 
 def _is_builtin(func: collections.abc.Callable):
     return any(func is v for v in vars(builtins).values())
-
-
-def _unwrap(func: typing.Callable):
-    """Unwrap decorated and bounded function."""
-    if hasattr(func, "__func__"):
-        func = func.__func__
-    while hasattr(func, "__wrapped__"):
-        func = func.__wrapped__
-    return func
 
 
 def _get_func_and_arg(
@@ -265,6 +259,7 @@ def purge(usage=True):
         if len(unused) > 0:
             warnings.warn("These configurations were not used:\n" + "\n".join(unused))
 
+    [unset_trace(f) for f, _ in _get_funcs_to_trace(_config)]
     _config = {}
     _code_to_func = {}
 
@@ -318,6 +313,33 @@ def _get_funcs(func: typing.Callable) -> typing.List[typing.Callable]:
     return [_unwrap(f) for f in funcs]
 
 
+def _get_funcs_to_trace(
+    config: Config,
+) -> typing.List[typing.Tuple[typing.Callable, typing.Callable]]:
+    """Get functions to trace along with their corresponding function configuration key."""
+    funcs = [k for k in config.keys() if not _is_builtin(k)]
+    message = "`__code__` isn't unique"
+    items = [(k, v) for v in funcs for k in _get_funcs(v)]
+    assert len(set(f.__code__ for f, _ in items)) == len(items), message
+    return items
+
+
+def enable_fast_trace(enable: bool = True):
+    """Enable or disable fast tracing."""
+    global _fast_trace_enabled
+    _fast_trace_enabled = enable
+    _update_trace_globals()
+
+
+def _update_trace_globals():
+    """Update various globals required for tracing."""
+    global _code_to_func
+    to_trace = _get_funcs_to_trace(_config)
+    [set_trace(f, trace) if _fast_trace_enabled else unset_trace(f) for f, _ in to_trace]
+    _code_to_func = {k.__code__: v for k, v in to_trace}
+    _call_once.cache_clear()
+
+
 def add(config: Config):
     """Add to the global configuration."""
     global _config
@@ -332,10 +354,7 @@ def add(config: Config):
         else:
             _config[key] = value.copy()
 
-    funcs = [k for k in _config.keys() if not _is_builtin(k)]
-    assert len(set(_get_funcs(f)[0].__code__ for f in funcs)) == len(funcs), "Invariant error"
-    _code_to_func = {k.__code__: f for f in funcs for k in _get_funcs(f)}
-    _call_once.cache_clear()
+    _update_trace_globals()
 
 
 def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
@@ -408,11 +427,7 @@ def to_str(func: ConfigKey):
         'random.Random.randint'
     """
     try:
-        # NOTE: Unwrap function decorators because they add indirection to the actual function
-        # filename.
-        while hasattr(func, "__wrapped__"):
-            func = func.__wrapped__
-
+        func = _unwrap(func)
         absolute_filename = Path(inspect.getfile(func))
         # NOTE: `relative_filename` is the longest filename relative to `sys.path` paths but
         # shorter than a absolute filename.
@@ -457,12 +472,8 @@ def _get_var_keyword(func: typing.Callable, co_name: str) -> typing.Optional[str
     return next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
 
 
-def trace(frame, event, arg, limit=5):  # pragma: no cover
+def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: no cover
     """Warn the user if a function is run without it's configured arguments.
-
-    TODO: Implement a low overhead tracer like so:
-    https://hardenedapple.github.io/stories/computers/python_function_override/
-    https://stackoverflow.com/questions/59088671/hooking-every-function-call-in-python
 
     Usage:
         >>> sys.settrace(trace)

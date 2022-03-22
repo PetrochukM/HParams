@@ -8,6 +8,7 @@ from config.config import (
     Args,
     _get_func_and_arg,
     add,
+    enable_fast_trace,
     export,
     get,
     log,
@@ -17,6 +18,18 @@ from config.config import (
     to_str,
     trace,
 )
+
+
+@pytest.fixture(autouse=True)
+def run_before_test():
+    enable_fast_trace(True)
+
+    yield
+
+    # Reset the global state after every test
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        purge()
 
 
 def _func(*a, **k):
@@ -295,9 +308,6 @@ def test_config__change():
 
 def test_config__class():
     """Test `config` can handle a class and class functions."""
-    trace_ = sys.gettrace()
-    sys.settrace(trace)
-
     add({Obj: Args(a=1), Obj.func: Args(b=2)})
     obj = Obj(**get())
     assert obj.results == (tuple(), {"a": 1})
@@ -311,8 +321,6 @@ def test_config__class():
     result = partial(obj.func)()
     assert result == (tuple(), {"b": 2})
 
-    sys.settrace(trace_)
-
 
 def test_config__class_init():
     """Test `config` errors if unbounded method `__init__` method is used."""
@@ -323,8 +331,6 @@ def test_config__class_init():
 
 def test_config__decorators():
     """Test `config` unwraps decorators."""
-    trace_ = sys.gettrace()
-    sys.settrace(trace)
     add({_dec_func: Args(a=1), _dec_other_func: Args(b=2)})
     result = _dec_func(**get())
     assert result == (tuple(), {"a": 1})
@@ -352,13 +358,9 @@ def test_config__decorators():
     result = obj.dec_func(**get())
     assert result == (tuple(), {"c": 7})
 
-    sys.settrace(trace_)
-
 
 def test_config__dec_class():
     """Test `config` can handle decorated class init."""
-    trace_ = sys.gettrace()
-    sys.settrace(trace)
     add({DecObj: Args(a=1)})
     obj = DecObj(**get())
     assert obj.results == (tuple(), {"a": 1})
@@ -366,13 +368,10 @@ def test_config__dec_class():
     message = "^Function `tests.test_config.DecObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert DecObj(a=2).results == (tuple(), {"a": 2})
-    sys.settrace(trace_)
 
 
 def test_config__new_class():
     """Test `config` can handle class with `__new__` implemented."""
-    trace_ = sys.gettrace()
-    sys.settrace(trace)
     add({NewObj: Args(a=1, k=2)})
     obj = NewObj(**get())
     assert obj.results == (tuple(), {"a": 1, "k": 2})
@@ -380,19 +379,15 @@ def test_config__new_class():
     message = "^Function `tests.test_config.NewObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert NewObj(a=3).results == (tuple(), {"a": 3})
-    sys.settrace(trace_)
 
 
 def test_config__var_kwargs():
     """Test `config` can handle if the configured argument isn't passed into a variable key word
     parameter."""
-    trace_ = sys.gettrace()
-    sys.settrace(trace)
     add({_func: Args(b=1)})
     message = "^Function `tests.test_config._func` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert _func() == (tuple(), {})
-    sys.settrace(trace_)
 
 
 def test_config__merge_configs():
@@ -482,6 +477,32 @@ def test_log():
 
 def test_trace():
     """Test `config.trace` can handle a basic case."""
+    add({_func: Args(a=1)})
+    with pytest.warns(UserWarning):
+        _func()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _func(a=get())
+        purge()
+        _func()
+
+
+def test_trace__repeated_warning():
+    """Test `config.trace` doesn't throw repeated warnings."""
+    add({_func: Args(a=1)})
+    with pytest.warns(UserWarning) as record:
+        for _ in range(10):
+            _func()
+    assert len(record) == 1
+
+    with pytest.warns(UserWarning):
+        _func()
+
+
+def test_trace__sys():
+    """Test `config.trace` can handle a basic case using sys."""
+    enable_fast_trace(False)
     trace_ = sys.gettrace()
     sys.settrace(trace)
 
@@ -493,23 +514,6 @@ def test_trace():
         warnings.simplefilter("error")
         _func(a=get())
         purge()
-        _func()
-
-    sys.settrace(trace_)
-
-
-def test_trace__repeated_warning():
-    """Test `config.trace` doesn't throw repeated warnings."""
-    trace_ = sys.gettrace()
-    sys.settrace(trace)
-
-    add({_func: Args(a=1)})
-    with pytest.warns(UserWarning) as record:
-        for _ in range(10):
-            _func()
-    assert len(record) == 1
-
-    with pytest.warns(UserWarning):
         _func()
 
     sys.settrace(trace_)
