@@ -174,6 +174,10 @@ configured()  # `config.trace` issues a WARNING!
 configured(a=config.get())
 ```
 
+We also have another option for faster tracing with `enable_fast_trace`. Instead of a system wide
+trace, this will inject new code into the `__code__` of every function in your configuration for
+tracing. This has much lower overhead; however, it is still in beta due to the number of edge cases.
+
 ## How does this work?
 
 Our approach is simple, `config` maintains a global configuration mapping each function to its
