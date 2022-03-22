@@ -396,6 +396,7 @@ def parse_cli_args(args: typing.List[str]) -> Config:
     return return_
 
 
+@functools.lru_cache(maxsize=None)
 def to_str(func: ConfigKey):
     """Get a unique string for each function.
 
@@ -447,7 +448,16 @@ def _call_once(
     return callable_(*args, **kwargs)
 
 
-def profile(frame, event, arg):  # pragma: no cover
+@functools.lru_cache(maxsize=None)
+def _get_var_keyword(func: typing.Callable, co_name: str) -> typing.Optional[str]:
+    if inspect.isclass(func):
+        params = inspect.signature(getattr(func, co_name)).parameters
+    else:
+        params = inspect.signature(func).parameters
+    return next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
+
+
+def profile(frame, event, arg, limit=5):  # pragma: no cover
     """Warn the user if a function is run without it's configured arguments.
 
     Usage:
@@ -466,23 +476,10 @@ def profile(frame, event, arg):  # pragma: no cover
     ):
         return
 
-    function = _code_to_func[frame.f_code]
-    items = _config[function].items()
+    func = _code_to_func[frame.f_code]
+    items = _config[func].items()
     f_locals = frame.f_locals
-
-    # NOTE: For a class, there are two possible signatures, `__new__` and `__init__`. These
-    # functions must accept the same arguments. The below will pick the correct signature based on
-    # `f_locals`.
-    if inspect.isclass(function) and function.__new__ is not object.__new__:
-        params = inspect.signature(function.__new__).parameters
-        first = next(iter(params), None)
-        if first not in f_locals or not inspect.isclass(f_locals[first]):
-            params = inspect.signature(function.__init__).parameters
-    else:
-        params = inspect.signature(function).parameters
-
-    # Check if all configurations are present in `f_locals`.
-    var = next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
+    var = _get_var_keyword(func, frame.f_code.co_name)
     if var is None:
         is_matching = all(f_locals[k] is v for k, v in items)
     else:
@@ -491,11 +488,10 @@ def profile(frame, event, arg):  # pragma: no cover
             (kwargs[k] is v) if k in kwargs else (f_locals[k] is v if k in f_locals else False)
             for k, v in items
         )
-
     if not is_matching:
-        traceback_ = "".join(traceback.format_stack(f=frame))
+        traceback_ = "".join(traceback.format_stack(f=frame, limit=limit))
         message = (
-            f"Function `{to_str(function)}` with different arguments than those that were "
+            f"Function `{to_str(func)}` with different arguments than those that were "
             f"configured.\n\nTraceback\n{traceback_}"
         )
         _call_once(warnings.warn, message)
