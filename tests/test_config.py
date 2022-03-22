@@ -13,9 +13,9 @@ from config.config import (
     log,
     parse_cli_args,
     partial,
-    profile,
     purge,
     to_str,
+    trace,
 )
 
 
@@ -295,8 +295,8 @@ def test_config__change():
 
 def test_config__class():
     """Test `config` can handle a class and class functions."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
 
     add({Obj: Args(a=1), Obj.func: Args(b=2)})
     obj = Obj(**get())
@@ -311,7 +311,7 @@ def test_config__class():
     result = partial(obj.func)()
     assert result == (tuple(), {"b": 2})
 
-    sys.setprofile(profile_)
+    sys.settrace(trace_)
 
 
 def test_config__class_init():
@@ -323,8 +323,8 @@ def test_config__class_init():
 
 def test_config__decorators():
     """Test `config` unwraps decorators."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
     add({_dec_func: Args(a=1), _dec_other_func: Args(b=2)})
     result = _dec_func(**get())
     assert result == (tuple(), {"a": 1})
@@ -352,13 +352,13 @@ def test_config__decorators():
     result = obj.dec_func(**get())
     assert result == (tuple(), {"c": 7})
 
-    sys.setprofile(profile_)
+    sys.settrace(trace_)
 
 
 def test_config__dec_class():
     """Test `config` can handle decorated class init."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
     add({DecObj: Args(a=1)})
     obj = DecObj(**get())
     assert obj.results == (tuple(), {"a": 1})
@@ -366,13 +366,13 @@ def test_config__dec_class():
     message = "^Function `tests.test_config.DecObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert DecObj(a=2).results == (tuple(), {"a": 2})
-    sys.setprofile(profile_)
+    sys.settrace(trace_)
 
 
 def test_config__new_class():
     """Test `config` can handle class with `__new__` implemented."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
     add({NewObj: Args(a=1, k=2)})
     obj = NewObj(**get())
     assert obj.results == (tuple(), {"a": 1, "k": 2})
@@ -380,19 +380,19 @@ def test_config__new_class():
     message = "^Function `tests.test_config.NewObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert NewObj(a=3).results == (tuple(), {"a": 3})
-    sys.setprofile(profile_)
+    sys.settrace(trace_)
 
 
 def test_config__var_kwargs():
     """Test `config` can handle if the configured argument isn't passed into a variable key word
     parameter."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
     add({_func: Args(b=1)})
     message = "^Function `tests.test_config._func` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert _func() == (tuple(), {})
-    sys.setprofile(profile_)
+    sys.settrace(trace_)
 
 
 def test_config__merge_configs():
@@ -480,10 +480,10 @@ def test_log():
     assert log() == {"#enumerate.start": "1"}
 
 
-def test_profile():
-    """Test `config.profile` can handle a basic case."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+def test_trace():
+    """Test `config.trace` can handle a basic case."""
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
 
     add({_func: Args(a=1)})
     with pytest.warns(UserWarning):
@@ -495,13 +495,13 @@ def test_profile():
         purge()
         _func()
 
-    sys.setprofile(profile_)
+    sys.settrace(trace_)
 
 
-def test_profile__repeated_warning():
-    """Test `config.profile` doesn't throw repeated warnings."""
-    profile_ = sys.getprofile()
-    sys.setprofile(profile)
+def test_trace__repeated_warning():
+    """Test `config.trace` doesn't throw repeated warnings."""
+    trace_ = sys.gettrace()
+    sys.settrace(trace)
 
     add({_func: Args(a=1)})
     with pytest.warns(UserWarning) as record:
@@ -512,4 +512,4 @@ def test_profile__repeated_warning():
     with pytest.warns(UserWarning):
         _func()
 
-    sys.setprofile(profile_)
+    sys.settrace(trace_)

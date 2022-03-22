@@ -457,15 +457,22 @@ def _get_var_keyword(func: typing.Callable, co_name: str) -> typing.Optional[str
     return next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
 
 
-def profile(frame, event, arg, limit=5):  # pragma: no cover
+def trace(frame, event, arg, limit=5):  # pragma: no cover
     """Warn the user if a function is run without it's configured arguments.
 
+    TODO: Implement a low overhead tracer like so:
+    https://hardenedapple.github.io/stories/computers/python_function_override/
+    https://stackoverflow.com/questions/59088671/hooking-every-function-call-in-python
+
     Usage:
-        >>> sys.setprofile(profile)
+        >>> sys.settrace(trace)
 
     Args:
-        See docs for `sys.setprofile`.
+        See docs for `sys.settrace`.
     """
+    frame.f_trace_lines = False
+    frame.f_trace_opcodes = False
+
     if (
         event != "call"
         or not hasattr(frame, "f_code")
@@ -474,7 +481,7 @@ def profile(frame, event, arg, limit=5):  # pragma: no cover
         or not hasattr(frame.f_back, "f_code")
         or frame.f_code not in _code_to_func
     ):
-        return
+        return trace
 
     func = _code_to_func[frame.f_code]
     items = _config[func].items()
@@ -495,3 +502,5 @@ def profile(frame, event, arg, limit=5):  # pragma: no cover
             f"configured.\n\nTraceback\n{traceback_}"
         )
         _call_once(warnings.warn, message)
+
+    return trace

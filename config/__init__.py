@@ -7,9 +7,9 @@ from config.config import (
     log,
     parse_cli_args,
     partial,
-    profile,
     purge,
     to_str,
+    trace,
 )
 
 __all__ = [
@@ -21,8 +21,8 @@ __all__ = [
     "log",
     "parse_cli_args",
     "partial",
-    "profile",
+    "trace",
     "purge",
     "to_str",
 ]
-__version__ = "0.4.13"
+__version__ = "0.4.14"

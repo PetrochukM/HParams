@@ -15,15 +15,17 @@ of code.
 
 #### Contents
 
-- [Install](#install)
-- [Usage](#usage)
-  - [Configuring a function](#configuring-a-function)
-  - [Writing a configuration file](#writing-a-configuration-file)
-  - [Configuring via the command line](#configuring-via-the-command-line)
-  - [Logging the configuration](#logging-the-configuration)
-  - [Advanced: Sharing configurations between processes](#advanced-sharing-configurations-between-processes)
-  - [Advanced: Ensuring the configuration is used](#advanced-ensuring-the-configuration-is-used)
-- [How does this work?](#how-does-this-work)
+- [Config](#config)
+      - [Contents](#contents)
+  - [Install](#install)
+  - [Usage 🤗](#usage-)
+    - [Configuring a function](#configuring-a-function)
+    - [Writing a configuration file](#writing-a-configuration-file)
+    - [Configuring via the command line](#configuring-via-the-command-line)
+    - [Logging the configuration](#logging-the-configuration)
+    - [Advanced: Sharing configurations between processes](#advanced-sharing-configurations-between-processes)
+    - [Advanced: Ensuring the configuration is used](#advanced-ensuring-the-configuration-is-used)
+  - [How does this work?](#how-does-this-work)
 
 ## Install
 
@@ -155,7 +157,7 @@ if __name__ == "__main__":
 ### Advanced: Ensuring the configuration is used
 
 In a large code base, it might be hard to tell if the configuration has been set for every function
-call. In this case, we've exposed `config.profile` which can double check every function call
+call. In this case, we've exposed `config.trace` which can double check every function call
 against the configuration, see below:
 
 ```python
@@ -165,10 +167,10 @@ import config
 def configured(a=111):
     pass
 
-sys.setprofile(config.profile)
+sys.settrace(config.trace)
 config.add({configured: config.Args(a=1)})
 
-configured()  # `config.profile` issues a WARNING!
+configured()  # `config.trace` issues a WARNING!
 configured(a=config.get())
 ```
 
