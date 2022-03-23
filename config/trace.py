@@ -69,17 +69,11 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     line = lines[offset]
     lines[offset] = line[: tokens[idx].start[1]] + insert + line[tokens[idx].start[1] :]
 
-    # Add indentation for template code below
-    lines = ["    " + l for l in lines]
-
-    # Create closures
-    free_vars = " ".join([f"    {var} = None;" for var in fn.__code__.co_freevars])
-
     code = f"""
 def {_closure_fn_name}():
-{free_vars}
+{" ".join([f"    {var} = None;" for var in fn.__code__.co_freevars])}
 
-{"".join(lines)}
+{"".join(["    " + l for l in lines])}
 
     return {fn.__name__}
 """
