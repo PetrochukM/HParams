@@ -170,6 +170,13 @@ def helper_multiline_five(a="a"):
     helper_multiline_five.a = a
 
 
+def helper_multiline_six(a="a"):
+    def helper_multiline_five():
+        helper_multiline_five.a = a
+
+    return helper_multiline_five
+
+
 class HelperMultilineObject:
     """Blah Blah"""
 
@@ -189,12 +196,13 @@ def test_trace__multiline():
         (helper_multiline_three, 159),
         (helper_multiline_four, 164),
         (helper_multiline_five, 170),
+        (helper_multiline_six(), 175),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
             funcs()
 
-    for class_, lineno in [(HelperMultilineObject, 177)]:
+    for class_, lineno in [(HelperMultilineObject, 184)]:
         set_trace(class_.__init__, trace_func)
         with pytest.warns(UserWarning, match=f"^__init__:{lineno}$"):
             class_()
