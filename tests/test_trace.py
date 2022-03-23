@@ -196,10 +196,16 @@ def helper_multiline_seven():
         pass
 
 
+def helper_multiline_eight():
+    """Hello"""
+    if True:
+        pass
+
+
 def test_trace__multiline():
     """Test `set_trace` handles a multiline definition."""
     for funcs, lineno in [
-        (helper_multiline, 140),
+        (helper_multiline, 139),
         (helper_multiline_one, 147),
         (helper_multiline_two, 152),
         (func_one_liner, 155),
@@ -207,7 +213,8 @@ def test_trace__multiline():
         (helper_multiline_four, 165),
         (helper_multiline_five, 171),
         (helper_multiline_six(), 176),
-        (helper_multiline_seven, 192),
+        (helper_multiline_seven, 191),
+        (helper_multiline_eight, 200),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):

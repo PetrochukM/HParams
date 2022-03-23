@@ -51,31 +51,36 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
 
     # Get first line and col index of body
     tokens = list(tokenize.generate_tokens(io.StringIO("".join(lines)).readline))
-    # NOTE: Find a ")" followed by either ":" or "->"
+    # NOTE: Find the end of the function definition
     idx = next(
         i
         for i, (p, n) in enumerate(zip(tokens, tokens[1:]))
         if (p.type == tokenize.OP and p.string == ")")
         and (n.type == tokenize.OP and (n.string == ":" or n.string == "->"))
     )
-    # NOTE: Afterwards, find the next ":" if we haven't found it yet.
     idx += next(i for i, t in enumerate(tokens[idx:]) if t.type == tokenize.OP and t.string == ":")
     idx += 1
-    # NOTE: Lastly, skip over, any new lines or indents, until the first operation.
+    # NOTE: Insert trace function after any new lines or indents...
     whitespaces = (tokenize.NEWLINE, tokenize.INDENT, tokenize.STRING)
-    idx += next(i for i, t in enumerate(tokens[idx:]) if t.type not in whitespaces)
-    offset = tokens[idx].start[0] - 1
+    idx += next(i for i, t in enumerate(tokens[idx:]) if t.type not in whitespaces) - 1
+    # NOTE: Insert trace function before the new line as long as it's a multiline function...
+    idx -= 1 if tokens[idx].type == tokenize.NEWLINE else 0
+    idx += 2 if tokens[idx].type == tokenize.OP and tokens[idx + 1].type == tokenize.NEWLINE else 0
+    token = tokens[idx]
+    row, col = token.end[0] - 1, token.end[1]
 
     # Insert trace function there
     # NOTE: To ensure `co_lnotab` isn't affected, the trace function is added to the first line
     # along with the original fist line.
     insert = f"{trace_fn_name}({_get_frame_fn_name}())"
-    line = lines[offset]
+    line = lines[row]
     if len(line.strip()) == 0:
-        indent, line_ = min((_indent_len(l), l) for l in lines[offset:] if len(l.strip()) != 0)
-        lines[offset] = line_[:indent] + insert + "\n"
+        indent, line_ = min((_indent_len(l), l) for l in lines[row:] if len(l.strip()) != 0)
+        lines[row] = line_[:indent] + insert + "\n"
+    elif token.type == tokenize.STRING:
+        lines[row] = line[:col] + "; " + insert + line[col:]
     else:
-        lines[offset] = line[: tokens[idx].start[1]] + insert + "; " + line[tokens[idx].start[1] :]
+        lines[row] = line[:col] + insert + "; " + line[col:]
 
     is_closure = len(fn.__code__.co_freevars) != 0
     if is_closure:
