@@ -304,7 +304,7 @@ def _check_args(func: ConfigKey, args: ConfigValue):
 
 def _get_funcs(func: typing.Callable) -> typing.List[typing.Callable]:
     """Get a list of functions `func` may be referring to."""
-    if inspect.isclass(func) and func.__new__ is object.__new__:
+    if inspect.isclass(func) and func.__new__ in (b.__new__ for b in func.__bases__):
         funcs = [func.__init__]
     elif inspect.isclass(func):
         funcs = [func.__init__, func.__new__]
@@ -318,8 +318,8 @@ def _get_funcs_to_trace(
 ) -> typing.List[typing.Tuple[typing.Callable, typing.Callable]]:
     """Get functions to trace along with their corresponding function configuration key."""
     funcs = [k for k in config.keys() if not _is_builtin(k)]
-    message = "`__code__` isn't unique"
     items = [(k, v) for v in funcs for k in _get_funcs(v)]
+    message = "`__code__` isn't unique"
     assert len(set(f.__code__ for f, _ in items)) == len(items), message
     return items
 
@@ -344,8 +344,13 @@ def _update_trace_globals():
     _call_once.cache_clear()
 
 
-def add(config: Config):
-    """Add to the global configuration."""
+def add(config: Config, overwrite: bool = False):
+    """Add to the global configuration.
+
+    Args:
+        config
+        overwrite: Iff `True` then configurations can be overwritten.
+    """
     global _config
     global _code_to_func
 
@@ -354,7 +359,10 @@ def add(config: Config):
     for key, value in config.items():
         key = _unwrap(key)
         if key in _config:
-            _config[key] = Args({**_config[key], **value})
+            update = Args({**_config[key], **value})
+            if not overwrite and len(update) != len(_config[key]) + len(value):
+                raise ValueError(f"Attempting to overwrite `{key}` configuration.")
+            _config[key] = update
         else:
             _config[key] = value.copy()
 

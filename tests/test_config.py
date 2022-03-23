@@ -56,7 +56,10 @@ _func.attr.bttr = _other_func
 
 
 class Obj:
-    def __init__(self, *a, **k) -> None:
+    def __new__(cls, *a, **k):
+        return super().__new__(cls)
+
+    def __init__(self, *a, **k):
         self.results = (a, k)
 
     def func(self, *a, **k):
@@ -77,7 +80,7 @@ class OtherObj(Obj):
 
     static_obj = Obj()
 
-    def __init__(self, *a, **k) -> None:
+    def __init__(self, *a, **k):
         super().__init__(*a, **k)
         self.obj = super().new(*a, **k)
 
@@ -85,7 +88,7 @@ class OtherObj(Obj):
 class DecObj(Obj):
     @functools.lru_cache()
     @functools.lru_cache()
-    def __init__(self, *a, **k) -> None:
+    def __init__(self, *a, **k):
         super().__init__(*a, **k)
 
 
@@ -93,7 +96,7 @@ class NewObj:
     def __new__(cls, *_, **__):
         return super().__new__(cls)
 
-    def __init__(self, *a, **k) -> None:
+    def __init__(self, *a, **k):
         self.results = (a, k)
 
 
@@ -379,6 +382,30 @@ def test_config__new_class():
     message = "^Function `tests.test_config.NewObj` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert NewObj(a=3).results == (tuple(), {"a": 3})
+
+
+def test_config__subclass():
+    """Test `config` can handle class with the same `__new__` method implemented because of
+    subclassing."""
+    config = {OtherObj.func: Args(a=1, k=2), DecObj.func: Args(a=3, k=4)}
+    assert len(config) == 1  # NOTE: This a really confusing edge case
+
+    add({OtherObj.func: Args(a=1, k=2)})
+    with pytest.raises(ValueError):
+        add({DecObj.func: Args(a=3, k=4)})
+
+    results = OtherObj().func(**get())
+    assert results == (tuple(), {"a": 1, "k": 2})
+    results = DecObj().func(**get())
+    assert results == (tuple(), {"a": 1, "k": 2})
+
+    config = {OtherObj.__new__: Args(a=1, k=2), DecObj.__new__: Args(a=3, k=4)}
+    assert len(config) == 1  # NOTE: This a really confusing edge case
+    add({OtherObj: Args(a=1, k=2), DecObj: Args(a=3, k=4)})
+    results = OtherObj(**get()).results
+    assert results == (tuple(), {"a": 1, "k": 2})
+    results = DecObj(**get()).results
+    assert results == (tuple(), {"a": 3, "k": 4})
 
 
 def test_config__var_kwargs():
