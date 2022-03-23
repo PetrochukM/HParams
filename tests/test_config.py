@@ -469,9 +469,18 @@ def test_config__merge_configs():
     result = get(func=Obj)
     assert result == {"a": 1, "b": 2}
 
-    add({Obj: Args(a=3)}, overwrite=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        add({Obj: Args(a=3)}, overwrite=True)
     result = get(func=Obj)
     assert result == {"a": 3, "b": 2}
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        add({Obj: Args(a=3)}, overwrite=False)
+
+    with pytest.raises(ValueError, match="Trying to overwrite `Obj#a` configuration."):
+        add({Obj: Args(a=2)}, overwrite=False)
 
 
 def test_parse_cli_args():

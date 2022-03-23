@@ -6,6 +6,7 @@ import builtins
 import collections
 import functools
 import inspect
+import logging
 import sys
 import textwrap
 import traceback
@@ -21,6 +22,8 @@ import executing
 from typeguard import check_type
 
 from config.trace import _unwrap, set_trace, unset_trace
+
+logger = logging.getLogger(__name__)
 
 
 class Args(typing.Dict[str, typing.Any]):
@@ -345,6 +348,12 @@ def enable_fast_trace(enable: bool = True):
     """Enable or disable fast tracing."""
     global _fast_trace_enabled
     _fast_trace_enabled = enable
+    logger.info(
+        "🎉 Fast trace enabled 🎉\n"
+        "This traces the configured functions by modifying their code and inserting a trace "
+        "function at the beginning of the function definition. This should work most of the time; "
+        "however, it can trigger strange `SyntaxError`s or have other weird behaviors."
+    )
     _update_trace_globals()
 
 
@@ -380,7 +389,10 @@ def add(config: Config, overwrite: bool = False):
         if key in _config:
             update = Args({**_config[key], **value})
             if not overwrite and len(update) != len(_config[key]) + len(value):
-                raise ValueError(f"Attempting to overwrite `{key}` configuration.")
+                for arg, val in _config[key].items():
+                    if update[arg] is not val:
+                        message = f"Trying to overwrite `{key.__qualname__}#{arg}` configuration."
+                        raise ValueError(message)
             _config[key] = update
         else:
             _config[key] = value.copy()
