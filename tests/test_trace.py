@@ -3,6 +3,7 @@ import traceback
 import types
 import typing
 import warnings
+from unittest import mock
 
 import pytest
 
@@ -20,12 +21,12 @@ def trace_func(frame: types.FrameType, event: str, arg):
 def test_trace():
     """Test `set_trace` handles basic cases."""
     set_trace(helper, trace_func)
-    with pytest.warns(UserWarning, match="^helper:13$"):
+    with pytest.warns(UserWarning, match="^helper:14$"):
         helper()
     unset_trace(helper)
     unset_trace(helper)
     set_trace(helper, trace_func)
-    with pytest.warns(UserWarning, match="^helper:13$"):
+    with pytest.warns(UserWarning, match="^helper:14$"):
         helper()
 
 
@@ -43,7 +44,7 @@ def helper_closure():
 
 def test_trace__closure():
     """Test `set_trace` handles closures."""
-    with pytest.warns(UserWarning, match="^func:36$"):
+    with pytest.warns(UserWarning, match="^func:37$"):
         helper_closure()
 
 
@@ -54,7 +55,7 @@ def helper_globals(a: typing.List, b: typing.List):
 def test_trace__globals():
     """Test `set_trace` handles globals."""
     set_trace(helper_globals, trace_func)
-    with pytest.warns(UserWarning, match="^helper_globals:51$"):
+    with pytest.warns(UserWarning, match="^helper_globals:52$"):
         helper_globals([], [])
 
 
@@ -65,11 +66,11 @@ def helper_traceback():
 def test_trace__traceback():
     """Test `set_trace` handles a traceback."""
     set_trace(helper_traceback, trace_func)
-    with pytest.warns(UserWarning, match="^helper_traceback:62$"):
+    with pytest.warns(UserWarning, match="^helper_traceback:63$"):
         expected = [
-            'tests/test_trace.py", line 75, in test_trace__traceback',
+            'tests/test_trace.py", line 76, in test_trace__traceback',
             'result = [l.strip() for l in helper_traceback().split("\\n") if len(l.strip()) > 0]',
-            'tests/test_trace.py", line 62, in helper_traceback',
+            'tests/test_trace.py", line 63, in helper_traceback',
             'return "".join(traceback.format_stack(limit=2))',
         ]
         result = [l.strip() for l in helper_traceback().split("\n") if len(l.strip()) > 0]
@@ -89,7 +90,7 @@ def test_trace__cellvars():
     """Test `set_trace` handles cellvars."""
     assert helper_cellvars.__code__.co_cellvars == ("a",)
     set_trace(helper_cellvars, trace_func)
-    with pytest.warns(UserWarning, match="^helper_cellvars:80$"):
+    with pytest.warns(UserWarning, match="^helper_cellvars:81$"):
         helper_cellvars()
 
 
@@ -102,7 +103,7 @@ def helper_decorator():
 def test_trace__decorator():
     """Test `set_trace` handles decorators."""
     set_trace(helper_decorator, trace_func)
-    with pytest.warns(UserWarning, match="^helper_decorator:99$"):
+    with pytest.warns(UserWarning, match="^helper_decorator:100$"):
         helper_decorator()
 
 
@@ -114,7 +115,7 @@ class HelperObject:
 def test_trace__object():
     """Test `set_trace` handles objects."""
     set_trace(HelperObject.__init__, trace_func)
-    with pytest.warns(UserWarning, match="^__init__:111$"):
+    with pytest.warns(UserWarning, match="^__init__:112$"):
         HelperObject()
 
 
@@ -189,23 +190,46 @@ class HelperMultilineObject:
 def test_trace__multiline():
     """Test `set_trace` handles a multiline definition."""
     for funcs, lineno in [
-        (helper_multiline, 137),
-        (helper_multiline_one, 146),
-        (helper_multiline_two, 151),
-        (func_one_liner, 154),
-        (helper_multiline_three, 159),
-        (helper_multiline_four, 164),
-        (helper_multiline_five, 170),
-        (helper_multiline_six(), 175),
+        (helper_multiline, 140),
+        (helper_multiline_one, 147),
+        (helper_multiline_two, 152),
+        (func_one_liner, 155),
+        (helper_multiline_three, 160),
+        (helper_multiline_four, 165),
+        (helper_multiline_five, 171),
+        (helper_multiline_six(), 176),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
             funcs()
 
-    for class_, lineno in [(HelperMultilineObject, 184)]:
+    for class_, lineno in [(HelperMultilineObject, 185)]:
         set_trace(class_.__init__, trace_func)
         with pytest.warns(UserWarning, match=f"^__init__:{lineno}$"):
             class_()
+
+
+name = "helper_multiline_seven"
+helper_multiline_seven_code = f"""def {name}(
+    a: str = "a",
+    b: str = "b",
+):
+\t\t
+\t\tpass"""
+module = {}
+exec(helper_multiline_seven_code, module)
+helper_multiline_seven = module[name]
+
+
+@mock.patch("trace.inspect.getsourcelines")
+def test_trace__multiline_no_formatting(mock_getsourcelines):
+    for funcs, lineno, code in [
+        (helper_multiline_seven, 5, helper_multiline_seven_code),
+    ]:
+        mock_getsourcelines.side_effect = lambda fn: [[l + "\n" for l in code.split("\n")]]
+        set_trace(funcs, trace_func)
+        with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
+            funcs()
 
 
 def other_trace_func(frame: types.FrameType, event: str, arg):
@@ -216,11 +240,23 @@ def test_set_trace__another():
     """Test `set_trace` handles case where it's set again."""
     set_trace(helper, trace_func)
     set_trace(helper, trace_func)
-    with pytest.warns(UserWarning, match="^helper:13$"):
+    with pytest.warns(UserWarning, match="^helper:14$"):
         helper()
     with pytest.raises(ValueError):
         set_trace(helper, other_trace_func)
     unset_trace(helper)
     set_trace(helper, other_trace_func)
-    with pytest.warns(UserWarning, match="^Other: helper:13$"):
+    with pytest.warns(UserWarning, match="^Other: helper:14$"):
         helper()
+
+
+def helper_zero_type():
+    assert type(0) == int
+    int(0)
+
+
+def test_set_trace__pytest_assert():
+    """Test `set_trace` fails if PyTest `assert` is encountered. PyTest also does fancy code
+    manipulation."""
+    with pytest.raises(SyntaxError, match="Unable to add trace to `helper_zero_type` definition."):
+        set_trace(helper_zero_type, trace_func)

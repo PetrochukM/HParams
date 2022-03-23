@@ -56,18 +56,21 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     )
     # NOTE: Afterwards, find the next ":" if we haven't found it yet.
     idx += next(i for i, t in enumerate(tokens[idx:]) if t.type == tokenize.OP and t.string == ":")
-    idx += 2
+    idx += 1
     # NOTE: Lastly, skip over, any new lines or indents, until the first operation.
-    whitespaces = (tokenize.NEWLINE, tokenize.INDENT)
+    whitespaces = (tokenize.NEWLINE, tokenize.INDENT, tokenize.STRING)
     idx += next(i for i, t in enumerate(tokens[idx:]) if t.type not in whitespaces)
     offset = tokens[idx].start[0] - 1
 
     # Insert trace function there
     # NOTE: To ensure `co_lnotab` isn't affected, the trace function is added to the first line
     # along with the original fist line.
-    insert = f"{trace_fn_name}({_get_frame_fn_name}()); "
+    insert = f"{trace_fn_name}({_get_frame_fn_name}())"
     line = lines[offset]
-    lines[offset] = line[: tokens[idx].start[1]] + insert + line[tokens[idx].start[1] :]
+    if len(line.strip()) == 0:
+        lines[offset] = lines[-1][: len(lines[-1]) - len(lines[-1].lstrip())] + insert + "\n"
+    else:
+        lines[offset] = line[: tokens[idx].start[1]] + insert + "; " + line[tokens[idx].start[1] :]
 
     is_closure = len(fn.__code__.co_freevars) != 0
     if is_closure:
@@ -85,10 +88,14 @@ def {_closure_fn_name}():
     try:
         exec(code, module)
     except SyntaxError:
-        raise SyntaxError(f"Unable to add `___trace` to `{fn.__qualname__}` definition.")
+        raise SyntaxError(f"Unable to add trace to `{fn.__qualname__}` definition.")
     new: typing.Callable = module[_closure_fn_name]() if is_closure else module[fn.__name__]
     new = _unwrap(new)
 
+    iter = zip(fn.__code__.co_consts, new.__code__.co_consts)
+    is_matching = (a == b for a, b in iter if not isinstance(a, types.CodeType))
+    if len(fn.__code__.co_consts) != len(new.__code__.co_consts) or not all(is_matching):
+        raise SyntaxError(f"Unable to add trace to `{fn.__qualname__}` definition.")
     return types.CodeType(
         fn.__code__.co_argcount,
         fn.__code__.co_posonlyargcount,
