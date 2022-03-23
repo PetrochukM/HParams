@@ -340,13 +340,13 @@ def test_config__decorators():
     result = _dec_other_func(**get())
     assert result == (tuple(), {"b": 2})
 
-    add({_dec_func.__wrapped__: Args(a=3), _dec_other_func.__wrapped__: Args(b=4)})
+    add({_dec_func.__wrapped__: Args(a=3), _dec_other_func.__wrapped__: Args(b=4)}, overwrite=True)
     result = _dec_func(**get())
     assert result == (tuple(), {"a": 3})
     result = _dec_other_func(**get())
     assert result == (tuple(), {"b": 4})
 
-    add({_dec_other_func.__wrapped__.__wrapped__: Args(b=5)})
+    add({_dec_other_func.__wrapped__.__wrapped__: Args(b=5)}, overwrite=True)
     result = _dec_other_func(**get())
     assert result == (tuple(), {"b": 5})
 
@@ -424,7 +424,7 @@ def test_config__merge_configs():
     result = get(func=Obj)
     assert result == {"a": 1, "b": 2}
 
-    add({Obj: Args(a=3)})
+    add({Obj: Args(a=3)}, overwrite=True)
     result = get(func=Obj)
     assert result == {"a": 3, "b": 2}
 
