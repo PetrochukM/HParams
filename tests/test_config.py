@@ -100,6 +100,10 @@ class NewObj:
         self.results = (a, k)
 
 
+class NoInitObj(Obj):
+    pass
+
+
 def test__get_func_and_arg():
     """Test `_get_func_and_arg` can handle the basic case."""
     result = _func(a=_get_func_and_arg())
@@ -330,6 +334,12 @@ def test_config__class_init():
     add({Obj.__init__: Args(a=1)})
     with pytest.raises(KeyError):
         Obj(**get())
+
+
+def test_config__class_no_init():
+    """Test `config` errors if object has no initiation methods."""
+    with pytest.raises(KeyError):
+        add({NoInitObj: Args(a=1)})
 
 
 def test_config__decorators():

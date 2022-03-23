@@ -304,10 +304,21 @@ def _check_args(func: ConfigKey, args: ConfigValue):
 
 def _get_funcs(func: typing.Callable) -> typing.List[typing.Callable]:
     """Get a list of functions `func` may be referring to."""
-    if inspect.isclass(func) and func.__new__ in (b.__new__ for b in func.__bases__):
-        funcs = [func.__init__]
-    elif inspect.isclass(func):
-        funcs = [func.__init__, func.__new__]
+    if inspect.isclass(func):
+        funcs = []
+        if func.__init__ not in (b.__init__ for b in func.__bases__):
+            funcs.append(func.__init__)
+        if func.__new__ not in (b.__new__ for b in func.__bases__):
+            funcs.append(func.__new__)
+        if len(funcs) == 0:
+            # NOTE: An implicit configuration like this may lead to duplicate configurations.
+            # This happens when the user defines a seperate configuration for a child and parent
+            # object that share the same initiation. Since there is no difference between their
+            # initiation functions, the configuration for them is duplicated.
+            raise KeyError(
+                f"The initiation for `{func}` is only implicitly defined. "
+                "Please use only explicit configurations."
+            )
     else:
         funcs = [func]
     return [_unwrap(f) for f in funcs]
@@ -358,6 +369,7 @@ def add(config: Config, overwrite: bool = False):
 
     for key, value in config.items():
         key = _unwrap(key)
+        _get_funcs(key)  # NOTE: Check `key` before adding it
         if key in _config:
             update = Args({**_config[key], **value})
             if not overwrite and len(update) != len(_config[key]) + len(value):
