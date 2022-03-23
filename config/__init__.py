@@ -1,6 +1,9 @@
 from config.config import (
     Args,
     Config,
+    DiffArgsWarning,
+    NoFastTraceWarning,
+    UnusedConfigsWarning,
     add,
     call,
     enable_fast_trace,
@@ -17,6 +20,9 @@ from config.config import (
 __all__ = [
     "Args",
     "Config",
+    "DiffArgsWarning",
+    "NoFastTraceWarning",
+    "UnusedConfigsWarning",
     "add",
     "call",
     "enable_fast_trace",
@@ -29,4 +35,4 @@ __all__ = [
     "purge",
     "to_str",
 ]
-__version__ = "0.5.10"
+__version__ = "0.5.11"

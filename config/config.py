@@ -27,6 +27,18 @@ class Args(typing.Dict[str, typing.Any]):
     pass
 
 
+class DiffArgsWarning(UserWarning):
+    pass
+
+
+class UnusedConfigsWarning(UserWarning):
+    pass
+
+
+class NoFastTraceWarning(UserWarning):
+    pass
+
+
 ConfigValue = Args
 ConfigKey = collections.abc.Callable
 Config = typing.Dict[ConfigKey, ConfigValue]
@@ -257,7 +269,8 @@ def purge(usage=True):
                 if func not in _count or _count[func][key] == 0:
                     unused.append(f"{func.__qualname__}#{key}")
         if len(unused) > 0:
-            warnings.warn("These configurations were not used:\n" + "\n".join(unused))
+            message = "These configurations were not used:\n" + "\n".join(unused)
+            warnings.warn(message, UnusedConfigsWarning)
 
     [unset_trace(f) for f, _ in _get_funcs_to_trace(_config)]
     _config = {}
@@ -350,7 +363,8 @@ def _update_trace_globals():
         try:
             set_trace(func, trace) if _fast_trace_enabled else unset_trace(func)
         except SyntaxError:
-            warnings.warn(f"Unable to fast trace `{func}` on behalf of `{config}`.")
+            message = f"Unable to fast trace `{func}` on behalf of `{config}`."
+            warnings.warn(message, NoFastTraceWarning)
     _code_to_func = {k.__code__: v for k, v in to_trace}
     _call_once.cache_clear()
 
@@ -562,6 +576,7 @@ def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: n
         )
     if not is_matching:
         traceback_ = "".join(traceback.format_stack(f=frame, limit=limit))
-        _call_once(warnings.warn, f"{_diff_args_message(func)}\n\nTraceback\n{traceback_}")
+        message = f"{_diff_args_message(func)}\n\nTraceback\n{traceback_}"
+        _call_once(warnings.warn, message, DiffArgsWarning)
 
     return trace

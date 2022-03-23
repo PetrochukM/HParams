@@ -6,6 +6,8 @@ import pytest
 
 from config.config import (
     Args,
+    DiffArgsWarning,
+    UnusedConfigsWarning,
     _diff_args_message,
     _get_func_and_arg,
     add,
@@ -248,7 +250,7 @@ def test_config__unused_func():
     """Test `config.purge` warns if a func configuration isn't used."""
     add({enumerate: Args(start=1)})
     message = "^These configurations were not used:\nenumerate#start$"
-    with pytest.warns(UserWarning, match=message):
+    with pytest.warns(UnusedConfigsWarning, match=message):
         purge()
 
 
@@ -257,7 +259,7 @@ def test_config__unused_arg():
     add({sorted: Args(reverse=False, key=None)})
     sorted([], reverse=get())
     message = "^These configurations were not used:\nsorted#key$"
-    with pytest.warns(UserWarning, match=message):
+    with pytest.warns(UnusedConfigsWarning, match=message):
         purge()
 
 
@@ -362,8 +364,7 @@ def test_config__decorators():
     result = _dec_other_func(**get())
     assert result == (tuple(), {"b": 5})
 
-    message = "^Function `tests.test_config._dec_other_func` with different arguments"
-    with pytest.warns(UserWarning, match=message):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_dec_other_func)):
         assert _dec_other_func(b=6) == (tuple(), {"b": 6})
 
     assert partial(_dec_other_func)() == (tuple(), {"b": 5})
@@ -380,8 +381,7 @@ def test_config__dec_class():
     obj = DecObj(**get())
     assert obj.results == (tuple(), {"a": 1})
     assert partial(DecObj)().results == (tuple(), {"a": 1})
-    message = "^Function `tests.test_config.DecObj` with different arguments"
-    with pytest.warns(UserWarning, match=message):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(DecObj)):
         assert DecObj(a=2).results == (tuple(), {"a": 2})
 
 
@@ -391,8 +391,7 @@ def test_config__new_class():
     obj = NewObj(**get())
     assert obj.results == (tuple(), {"a": 1, "k": 2})
     assert partial(NewObj)().results == (tuple(), {"a": 1, "k": 2})
-    message = "^Function `tests.test_config.NewObj` with different arguments"
-    with pytest.warns(UserWarning, match=message):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(NewObj)):
         assert NewObj(a=3).results == (tuple(), {"a": 3})
 
 
@@ -424,22 +423,21 @@ def test_config__var_kwargs():
     """Test `config` can handle if the configured argument isn't passed into a variable key word
     parameter."""
     add({_func: Args(b=1)})
-    message = "^Function `tests.test_config._func` with different arguments"
-    with pytest.warns(UserWarning, match=message):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func)):
         assert _func() == (tuple(), {})
 
 
 def test_config__different_args():
     """Test `config` reports different args and ignores them."""
     add({_func: Args(b=1)})
-    with pytest.warns(UserWarning, match=_diff_args_message(_func)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func)):
         assert _func() == (tuple(), {})
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         assert call(_func, b=2, _overwrite=True) == (tuple(), {"b": 2})
 
-    with pytest.warns(UserWarning, match=_diff_args_message(_func)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func)):
         assert call(_func, b=2, _overwrite=False) == (tuple(), {"b": 2})
 
 
@@ -458,11 +456,11 @@ def test_config__call_inner():
         warnings.simplefilter("error")
         assert func(1, 2) == (1, 2)
 
-    with pytest.warns(UserWarning, match="with different arguments") as record:
+    with pytest.warns(DiffArgsWarning) as record:
         assert func(2, 3) == (2, 3)
         assert len(record) == 2
 
-    with pytest.warns(UserWarning, match=_diff_args_message(func)) as record:
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(func)) as record:
         assert func(2, 2) == (2, 2)
         assert len(record) == 1
 
@@ -470,7 +468,7 @@ def test_config__call_inner():
         warnings.simplefilter("error")
         assert call(func, a=2, b=2, _overwrite=True) == (2, 2)
 
-    with pytest.warns(UserWarning, match=_diff_args_message(inner)) as record:
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(inner)) as record:
         assert call(func, a=2, b=3, _overwrite=True) == (2, 3)
 
 
@@ -562,7 +560,7 @@ def test_log():
 def test_trace():
     """Test `config.trace` can handle a basic case."""
     add({_func: Args(a=1)})
-    with pytest.warns(UserWarning):
+    with pytest.warns(DiffArgsWarning):
         _func()
 
     with warnings.catch_warnings():
@@ -575,12 +573,12 @@ def test_trace():
 def test_trace__repeated_warning():
     """Test `config.trace` doesn't throw repeated warnings."""
     add({_func: Args(a=1)})
-    with pytest.warns(UserWarning) as record:
+    with pytest.warns(DiffArgsWarning) as record:
         for _ in range(10):
             _func()
         assert len(record) == 1
 
-    with pytest.warns(UserWarning):
+    with pytest.warns(DiffArgsWarning):
         _func()
 
 
@@ -591,7 +589,7 @@ def test_trace__sys():
     sys.settrace(trace)
 
     add({_func: Args(a=1)})
-    with pytest.warns(UserWarning):
+    with pytest.warns(DiffArgsWarning):
         _func()
 
     with warnings.catch_warnings():
