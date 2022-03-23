@@ -389,7 +389,9 @@ def partial(func: ConfigKey, *args, **kwargs) -> functools.partial:
     return functools.partial(func, *args, **kwargs, **_config[key])
 
 
-_different_arguments_message = "with different arguments than those that were"
+def _diff_args_message(func: typing.Callable):
+    return f"Function `{to_str(func)}` with different arguments than those that were configured."
+
 
 _CallReturnType = typing.TypeVar("_CallReturnType")
 
@@ -397,16 +399,22 @@ _CallReturnType = typing.TypeVar("_CallReturnType")
 def call(
     func: typing.Callable[..., _CallReturnType],
     *args,
-    overwrite: bool = False,
+    _overwrite: bool = False,
     **kwargs,
 ) -> _CallReturnType:
-    """Call `func` with it's configured args."""
+    """Call `func` with it's configured args.
+
+    Args:
+        ...
+        _overwrite: Iff `True` then ignore `func` configuration during call.
+        ...
+    """
     with warnings.catch_warnings():
-        if overwrite:
+        if _overwrite:
             warnings.filterwarnings(
                 "ignore",
                 module=r".*config.*",
-                message=f".*{_different_arguments_message}*",
+                message=f".*{_diff_args_message(func)}*",
             )
         return partial(func)(*args, **kwargs)
 
@@ -554,10 +562,6 @@ def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: n
         )
     if not is_matching:
         traceback_ = "".join(traceback.format_stack(f=frame, limit=limit))
-        message = (
-            f"Function `{to_str(func)}` {_different_arguments_message} "
-            f"configured.\n\nTraceback\n{traceback_}"
-        )
-        _call_once(warnings.warn, message)
+        _call_once(warnings.warn, f"{_diff_args_message(func)}\n\nTraceback\n{traceback_}")
 
     return trace

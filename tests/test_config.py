@@ -6,6 +6,7 @@ import pytest
 
 from config.config import (
     Args,
+    _diff_args_message,
     _get_func_and_arg,
     add,
     call,
@@ -431,15 +432,46 @@ def test_config__var_kwargs():
 def test_config__different_args():
     """Test `config` reports different args and ignores them."""
     add({_func: Args(b=1)})
-    with pytest.warns(UserWarning, match="with different arguments"):
+    with pytest.warns(UserWarning, match=_diff_args_message(_func)):
         assert _func() == (tuple(), {})
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        assert call(_func, b=2, overwrite=True) == (tuple(), {"b": 2})
+        assert call(_func, b=2, _overwrite=True) == (tuple(), {"b": 2})
 
-    with pytest.warns(UserWarning, match="with different arguments"):
-        assert call(_func, b=2, overwrite=False) == (tuple(), {"b": 2})
+    with pytest.warns(UserWarning, match=_diff_args_message(_func)):
+        assert call(_func, b=2, _overwrite=False) == (tuple(), {"b": 2})
+
+
+def test_config__call_inner():
+    """Test `config` silences the correct error."""
+
+    def inner(b):
+        return b
+
+    def func(a, b):
+        return a, inner(b)
+
+    add({func: Args(a=1), inner: Args(b=2)})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert func(1, 2) == (1, 2)
+
+    with pytest.warns(UserWarning, match="with different arguments") as record:
+        assert func(2, 3) == (2, 3)
+        assert len(record) == 2
+
+    with pytest.warns(UserWarning, match=_diff_args_message(func)) as record:
+        assert func(2, 2) == (2, 2)
+        assert len(record) == 1
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert call(func, a=2, b=2, _overwrite=True) == (2, 2)
+
+    with pytest.warns(UserWarning, match=_diff_args_message(inner)) as record:
+        assert call(func, a=2, b=3, _overwrite=True) == (2, 3)
 
 
 def test_config__merge_configs():
@@ -546,7 +578,7 @@ def test_trace__repeated_warning():
     with pytest.warns(UserWarning) as record:
         for _ in range(10):
             _func()
-    assert len(record) == 1
+        assert len(record) == 1
 
     with pytest.warns(UserWarning):
         _func()
