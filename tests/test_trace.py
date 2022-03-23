@@ -206,3 +206,21 @@ def test_trace__multiline():
         set_trace(class_.__init__, trace_func)
         with pytest.warns(UserWarning, match=f"^__init__:{lineno}$"):
             class_()
+
+
+def other_trace_func(frame: types.FrameType, event: str, arg):
+    warnings.warn(f"Other: {frame.f_code.co_name}:{frame.f_lineno}")
+
+
+def test_set_trace__another():
+    """Test `set_trace` handles case where it's set again."""
+    set_trace(helper, trace_func)
+    set_trace(helper, trace_func)
+    with pytest.warns(UserWarning, match="^helper:13$"):
+        helper()
+    with pytest.raises(ValueError):
+        set_trace(helper, other_trace_func)
+    unset_trace(helper)
+    set_trace(helper, other_trace_func)
+    with pytest.warns(UserWarning, match="^Other: helper:13$"):
+        helper()

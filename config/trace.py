@@ -115,7 +115,7 @@ def _update_globals(
     """Add `value` to `globals_` under `key`."""
     if key in globals_:
         if cmp_(globals_[key]) is not cmp_(value):
-            raise RuntimeError(f"`{key}` has already been set.")
+            raise ValueError(f"`{key}` has already been set.")
     else:
         globals_[key] = value
 
