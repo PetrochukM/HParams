@@ -68,9 +68,7 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     # and comments.
     idx -= next(i for i, t in enumerate(reversed(tokens[:idx])) if t.type not in whitespaces) + 1
     idx += 2 if tokens[idx].type == tokenize.OP and tokens[idx + 1].type == tokenize.NEWLINE else 0
-    idx += 2 if tokens[idx].type == tokenize.COMMENT else 0
-    token = tokens[idx]
-    row, col = token.end[0] - 1, token.end[1]
+    token, row = tokens[idx], tokens[idx].end[0] - 1
 
     # Insert trace function there
     # NOTE: To ensure `co_lnotab` isn't affected, the trace function is added to the first line
@@ -81,9 +79,11 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
         indent, line_ = min((_indent_len(l), l) for l in lines[row:] if len(l.strip()) != 0)
         lines[row] = line_[:indent] + insert + "\n"
     elif token.type == tokenize.STRING:
-        lines[row] = line[:col] + "; " + insert + line[col:]
+        lines[row] = line[: token.end[1]] + "; " + insert + line[token.end[1] :]
+    elif token.type == tokenize.COMMENT:
+        lines[row] = line[: token.start[1]] + insert + "; " + line[token.start[1] :]
     else:
-        lines[row] = line[:col] + insert + "; " + line[col:]
+        lines[row] = line[: token.end[1]] + insert + "; " + line[token.end[1] :]
 
     is_closure = len(fn.__code__.co_freevars) != 0
     if is_closure:
@@ -106,7 +106,7 @@ def {_closure_fn_name}():
     new = _unwrap(new)
 
     iter = zip(fn.__code__.co_consts, new.__code__.co_consts)
-    is_matching = (a == b for a, b in iter if not isinstance(a, types.CodeType))
+    is_matching = (type(a) is type(b) for a, b in iter if not isinstance(a, types.CodeType))
     if len(fn.__code__.co_consts) != len(new.__code__.co_consts) or not all(is_matching):
         raise SyntaxError(f"Unable to add trace to `{fn.__qualname__}` definition.")
     return types.CodeType(

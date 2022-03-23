@@ -204,16 +204,17 @@ def helper_multiline_eight():
 
 def helper_multiline_nine():
     # This is a comment
-
     if True:
         pass
+
+    pass
 
 
 class HelperMultilineObjectTwo:
     """Blah Blah"""
 
     def __init__(self) -> None:
-        self.a = "a"
+        self.a = [i for i in range(10)]
 
 
 def test_trace__multiline():
@@ -229,13 +230,13 @@ def test_trace__multiline():
         (helper_multiline_six(), 176),
         (helper_multiline_seven, 191),
         (helper_multiline_eight, 200),
-        (helper_multiline_nine, 207),
+        (helper_multiline_nine, 206),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
             funcs()
 
-    for class_, lineno in [(HelperMultilineObjectOne, 185), (HelperMultilineObjectTwo, 216)]:
+    for class_, lineno in [(HelperMultilineObjectOne, 185), (HelperMultilineObjectTwo, 217)]:
         set_trace(class_.__init__, trace_func)
         with pytest.warns(UserWarning, match=f"^__init__:{lineno}$"):
             class_()
