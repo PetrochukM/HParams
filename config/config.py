@@ -254,31 +254,24 @@ def get(arg: typing.Optional[str] = None, func: typing.Optional[ConfigKey] = Non
     return _config[func] if arg is None else _config[func][arg]
 
 
-def purge(usage=True):
-    """Delete the global configuration.
-
-    Args:
-        usage: Analyze and clear the usage counter instead of persisting it.
-    """
+def purge():
+    """Delete the global configuration."""
     global _config, _count, _code_to_func
 
-    if usage:
-        unused = []
-        for func, args in _config.items():
-            for key in args.keys():
-                if func not in _count or _count[func][key] == 0:
-                    unused.append(f"{func.__qualname__}#{key}")
-        if len(unused) > 0:
-            message = "These configurations were not used:\n" + "\n".join(unused)
-            warnings.warn(message, UnusedConfigsWarning)
+    unused = []
+    for func, args in _config.items():
+        for key in args.keys():
+            if func not in _count or _count[func][key] == 0:
+                unused.append(f"{func.__qualname__}#{key}")
+    if len(unused) > 0:
+        message = "These configurations were not used:\n" + "\n".join(unused)
+        warnings.warn(message, UnusedConfigsWarning)
 
     [unset_trace(f) for f, _ in _get_funcs_to_trace(_config)]
     _config = {}
     _code_to_func = {}
-
-    if usage:
-        _call_once.cache_clear()
-        _count = defaultdict(lambda: defaultdict(int))
+    _call_once.cache_clear()
+    _count = defaultdict(lambda: defaultdict(int))
 
 
 atexit.register(purge)

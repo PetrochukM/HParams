@@ -263,16 +263,6 @@ def test_config__unused_arg():
         purge()
 
 
-def test_config__usage():
-    """Test `config.purge` persists the usage counter."""
-    add({sorted: Args(reverse=False, key=None)})
-    sorted([], reverse=get())
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        purge(usage=False)
-        purge(usage=True)
-
-
 def test_config__incorrect_arg():
     """Test `config.add` errors if `Args` has non existant arguments."""
     with pytest.raises(ValueError):
