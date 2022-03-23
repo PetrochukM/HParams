@@ -347,13 +347,14 @@ def _get_funcs_to_trace(
 def enable_fast_trace(enable: bool = True):
     """Enable or disable fast tracing."""
     global _fast_trace_enabled
+    if enable and not _fast_trace_enabled:
+        logger.info(
+            "🎉 Fast trace enabled 🎉\n"
+            "This traces the configured functions by modifying their code and inserting a trace "
+            "function at the beginning of the function definition. This should work most of the "
+            "time; however, it can trigger strange `SyntaxError`s or have other weird behaviors."
+        )
     _fast_trace_enabled = enable
-    logger.info(
-        "🎉 Fast trace enabled 🎉\n"
-        "This traces the configured functions by modifying their code and inserting a trace "
-        "function at the beginning of the function definition. This should work most of the time; "
-        "however, it can trigger strange `SyntaxError`s or have other weird behaviors."
-    )
     _update_trace_globals()
 
 
