@@ -49,9 +49,9 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     init_indent = _indent_len(lines[0])
     lines = [l[init_indent:] if len(l.strip()) > 0 else l for l in lines]
 
-    # Get first line and col index of body
+    # Get first `row` and `col` to insert trace function...
     tokens = list(tokenize.generate_tokens(io.StringIO("".join(lines)).readline))
-    # NOTE: Find the end of the function definition
+    # Find the end of the function definition
     idx = next(
         i
         for i, (p, n) in enumerate(zip(tokens, tokens[1:]))
@@ -60,12 +60,15 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     )
     idx += next(i for i, t in enumerate(tokens[idx:]) if t.type == tokenize.OP and t.string == ":")
     idx += 1
-    # NOTE: Insert trace function after any new lines or indents...
-    whitespaces = (tokenize.NEWLINE, tokenize.INDENT, tokenize.STRING)
-    idx += next(i for i, t in enumerate(tokens[idx:]) if t.type not in whitespaces) - 1
-    # NOTE: Insert trace function before the new line as long as it's a multiline function...
-    idx -= 1 if tokens[idx].type == tokenize.NEWLINE else 0
+    # Skip past any non-functional tokens like whitespaces, documentation or comments
+    whitespaces = [tokenize.NEWLINE, tokenize.NL, tokenize.INDENT]
+    non_functional = [tokenize.STRING, tokenize.COMMENT] + whitespaces
+    idx += next(i for i, t in enumerate(tokens[idx:]) if t.type not in non_functional)
+    # Find the end of the last non-whitespace token with special handling for single line functions
+    # and comments.
+    idx -= next(i for i, t in enumerate(reversed(tokens[:idx])) if t.type not in whitespaces) + 1
     idx += 2 if tokens[idx].type == tokenize.OP and tokens[idx + 1].type == tokenize.NEWLINE else 0
+    idx += 2 if tokens[idx].type == tokenize.COMMENT else 0
     token = tokens[idx]
     row, col = token.end[0] - 1, token.end[1]
 

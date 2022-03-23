@@ -144,25 +144,25 @@ def helper_multiline(
 
 def helper_multiline_one(  # noqa: E704
     a=10,
-    b=100): print(100); print(200);  # noqa: E702, E703
+    b=100): pass; pass;  # noqa: E702, E703
 
 
 def helper_multiline_two(  # noqa: E704
     a=(""),
-    b=100): print(100); print(200);  # noqa: E702, E703
+    b=100): pass; pass;  # noqa: E702, E703
 
 
-def func_one_liner(): print(200); print("a", "b", "c")  # noqa: E702, E703, E704
+def func_one_liner(): pass; pass  # noqa: E702, E703, E704
 
 
 def helper_multiline_three(  # noqa: E704
     a: str = 'x', b: int = 5 + 6, c: list = []
-    ) -> max(2, 9): print(100); print(200)  # noqa: E702, E703, E704, E123
+    ) -> max(2, 9): pass; pass  # noqa: E702, E703, E704, E123
 
 
 def helper_multiline_four(  # noqa: E704
     a: str = 'x', b: int = 5 + 6, c: list = []
-    ) -> None: print(100); print(200)  # noqa: E702, E703, E704, E123
+    ) -> None: pass; pass  # noqa: E702, E703, E704, E123
 
 # fmt: on
 
@@ -178,7 +178,7 @@ def helper_multiline_six(a="a"):
     return helper_multiline_five
 
 
-class HelperMultilineObject:
+class HelperMultilineObjectOne:
     """Blah Blah"""
 
     def __init__(self) -> None:
@@ -202,6 +202,20 @@ def helper_multiline_eight():
         pass
 
 
+def helper_multiline_nine():
+    # This is a comment
+
+    if True:
+        pass
+
+
+class HelperMultilineObjectTwo:
+    """Blah Blah"""
+
+    def __init__(self) -> None:
+        self.a = "a"
+
+
 def test_trace__multiline():
     """Test `set_trace` handles a multiline definition."""
     for funcs, lineno in [
@@ -215,12 +229,13 @@ def test_trace__multiline():
         (helper_multiline_six(), 176),
         (helper_multiline_seven, 191),
         (helper_multiline_eight, 200),
+        (helper_multiline_nine, 207),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
             funcs()
 
-    for class_, lineno in [(HelperMultilineObject, 185)]:
+    for class_, lineno in [(HelperMultilineObjectOne, 185), (HelperMultilineObjectTwo, 216)]:
         set_trace(class_.__init__, trace_func)
         with pytest.warns(UserWarning, match=f"^__init__:{lineno}$"):
             class_()
