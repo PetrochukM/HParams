@@ -127,3 +127,55 @@ def test_trace__funky_first_line():
     """Test `set_trace` handles a incomatible first line."""
     with pytest.raises(SyntaxError):
         set_trace(helper_funky_first_line, trace_func)
+
+
+@functools.lru_cache()
+def helper_multiline(
+    a: str = "a",
+    b: str = "b",
+):
+    """This is a multi-line...
+    comment!"""
+    pass
+
+
+# fmt: off
+
+def helper_multiline_one(  # noqa: E704
+    a=10,
+    b=100): print(100); print(200);  # noqa: E702, E703
+
+
+def helper_multiline_two(  # noqa: E704
+    a=(""),
+    b=100): print(100); print(200);  # noqa: E702, E703
+
+
+def func_one_liner(): print(200); print("a", "b", "c")  # noqa: E702, E703, E704
+
+
+def helper_multiline_three(  # noqa: E704
+    a: str = 'x', b: int = 5 + 6, c: list = []
+    ) -> max(2, 9): print(100); print(200)  # noqa: E702, E703, E704, E123
+
+
+def helper_multiline_four(  # noqa: E704
+    a: str = 'x', b: int = 5 + 6, c: list = []
+    ) -> None: print(100); print(200)  # noqa: E702, E703, E704, E123
+
+# fmt: on
+
+
+def test_trace__multiline():
+    """Test `set_trace` handles a multiline definition."""
+    for funcs, lineno in [
+        (helper_multiline, 137),
+        (helper_multiline_one, 146),
+        (helper_multiline_two, 151),
+        (func_one_liner, 154),
+        (helper_multiline_three, 159),
+        (helper_multiline_four, 164),
+    ]:
+        set_trace(funcs, trace_func)
+        with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
+            funcs()

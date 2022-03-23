@@ -7,8 +7,11 @@ https://stackoverflow.com/questions/27671553/modifying-code-of-function-at-runti
 https://stackoverflow.com/questions/71574980/low-overhead-tracing-function-in-python-by-modify-the-code-object/71576012#71576012
 """
 
+import functools
 import inspect
+import io
 import sys
+import tokenize
 import types
 import typing
 from functools import partial
@@ -33,6 +36,7 @@ def _get_trace_fn_name(fn):
     return f"___trace_{name}"
 
 
+@functools.lru_cache(maxsize=None)
 def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     """Create Code object that runs `trace_fn_name` on the first line."""
     lines = inspect.getsourcelines(fn)[0]
@@ -41,17 +45,32 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     init_indent = len(lines[0]) - len(lines[0].lstrip())
     lines = [l[init_indent:] for l in lines]
 
-    offset = next(i for i, l in enumerate(lines) if "@" != l[0])
+    # Get first line and col index of body
+    tokens = list(tokenize.generate_tokens(io.StringIO("".join(lines)).readline))
+    # NOTE: Find a ")" followed by either ":" or "->"
+    idx = next(
+        i
+        for i, (p, n) in enumerate(zip(tokens, tokens[1:]))
+        if (p.type == tokenize.OP and p.string == ")")
+        and (n.type == tokenize.OP and (n.string == ":" or n.string == "->"))
+    )
+    # NOTE: Afterwards, find the next ":" if we haven't found it yet.
+    idx += next(i for i, t in enumerate(tokens[idx:]) if t.type == tokenize.OP and t.string == ":")
+    idx += 2
+    # NOTE: Lastly, skip over, any new lines or indents, until the first operation.
+    whitespaces = (tokenize.NEWLINE, tokenize.INDENT)
+    idx += next(i for i, t in enumerate(tokens[idx:]) if t.type not in whitespaces)
+    offset = tokens[idx].start[0] - 1
+
+    # Insert trace function there
+    # NOTE: To ensure `co_lnotab` isn't affected, the trace function is added to the first line
+    # along with the original fist line.
+    insert = f"{trace_fn_name}({_get_frame_fn_name}()); "
+    line = lines[offset]
+    lines[offset] = line[: tokens[idx].start[1]] + insert + line[tokens[idx].start[1] :]
 
     # Add indentation for template code below
     lines = ["    " + l for l in lines]
-
-    # NOTE: To ensure `co_lnotab` isn't affected, the trace function is added to the first line
-    # along with the original fist line.
-    whitespace = lines[offset + 1][: len(lines[offset + 1]) - len(lines[offset + 1].lstrip())]
-    lines[offset + 1] = (
-        f"{whitespace}{trace_fn_name}({_get_frame_fn_name}()); " f"{lines[offset + 1].strip()}\n"
-    )
 
     # Create closures
     free_vars = " ".join([f"    {var} = None;" for var in fn.__code__.co_freevars])
