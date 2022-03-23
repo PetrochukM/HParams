@@ -437,9 +437,7 @@ def call(
     with warnings.catch_warnings():
         if _overwrite:
             warnings.filterwarnings(
-                "ignore",
-                module=r".*config.*",
-                message=f".*{_diff_args_message(func)}*",
+                "ignore", category=DiffArgsWarning, message=f".*{_diff_args_message(func)}*"
             )
         return partial(func)(*args, **kwargs)
 
