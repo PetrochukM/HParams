@@ -85,7 +85,7 @@ def {_closure_fn_name}():
     try:
         exec(code, module)
     except SyntaxError:
-        raise SyntaxError("Unable to add `___trace` to function definition.")
+        raise SyntaxError(f"Unable to add `___trace` to `{fn.__qualname__}` definition.")
     new: typing.Callable = module[_closure_fn_name]() if is_closure else module[fn.__name__]
     new = _unwrap(new)
 

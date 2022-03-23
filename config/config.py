@@ -335,7 +335,11 @@ def _update_trace_globals():
     """Update various globals required for tracing."""
     global _code_to_func
     to_trace = _get_funcs_to_trace(_config)
-    [set_trace(f, trace) if _fast_trace_enabled else unset_trace(f) for f, _ in to_trace]
+    for func, config in to_trace:
+        try:
+            set_trace(func, trace) if _fast_trace_enabled else unset_trace(func)
+        except SyntaxError:
+            warnings.warn(f"Unable to fast trace `{func}` on behalf of `{config}`.")
     _code_to_func = {k.__code__: v for k, v in to_trace}
     _call_once.cache_clear()
 
