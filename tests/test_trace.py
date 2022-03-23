@@ -187,6 +187,15 @@ class HelperMultilineObject:
         self.a = "a"
 
 
+def helper_multiline_seven():
+    """Hello"""
+
+    try:
+        pass
+    except Exception:
+        pass
+
+
 def test_trace__multiline():
     """Test `set_trace` handles a multiline definition."""
     for funcs, lineno in [
@@ -198,6 +207,7 @@ def test_trace__multiline():
         (helper_multiline_four, 165),
         (helper_multiline_five, 171),
         (helper_multiline_six(), 176),
+        (helper_multiline_seven, 192),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
@@ -209,22 +219,22 @@ def test_trace__multiline():
             class_()
 
 
-name = "helper_multiline_seven"
-helper_multiline_seven_code = f"""def {name}(
+name = "helper_multiline_funky_one"
+helper_multiline_funky_one_code = f"""def {name}(
     a: str = "a",
     b: str = "b",
 ):
 \t\t
 \t\tpass"""
 module = {}
-exec(helper_multiline_seven_code, module)
-helper_multiline_seven = module[name]
+exec(helper_multiline_funky_one_code, module)
+helper_multiline_funky_one = module[name]
 
 
 @mock.patch("trace.inspect.getsourcelines")
 def test_trace__multiline_no_formatting(mock_getsourcelines):
     for funcs, lineno, code in [
-        (helper_multiline_seven, 5, helper_multiline_seven_code),
+        (helper_multiline_funky_one, 5, helper_multiline_funky_one_code),
     ]:
         mock_getsourcelines.side_effect = lambda fn: [[l + "\n" for l in code.split("\n")]]
         set_trace(funcs, trace_func)

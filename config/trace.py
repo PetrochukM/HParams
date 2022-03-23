@@ -36,13 +36,17 @@ def _get_trace_fn_name(fn):
     return f"___trace_{name}"
 
 
+def _indent_len(line: str):
+    return len(line) - len(line.lstrip())
+
+
 @functools.lru_cache(maxsize=None)
 def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     """Create Code object that runs `trace_fn_name` on the first line."""
     lines = inspect.getsourcelines(fn)[0]
 
     # Remove extra indentation
-    init_indent = len(lines[0]) - len(lines[0].lstrip())
+    init_indent = _indent_len(lines[0])
     lines = [l[init_indent:] if len(l.strip()) > 0 else l for l in lines]
 
     # Get first line and col index of body
@@ -68,7 +72,8 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     insert = f"{trace_fn_name}({_get_frame_fn_name}())"
     line = lines[offset]
     if len(line.strip()) == 0:
-        lines[offset] = lines[-1][: len(lines[-1]) - len(lines[-1].lstrip())] + insert + "\n"
+        indent, line_ = min((_indent_len(l), l) for l in lines[offset:] if len(l.strip()) != 0)
+        lines[offset] = line_[:indent] + insert + "\n"
     else:
         lines[offset] = line[: tokens[idx].start[1]] + insert + "; " + line[tokens[idx].start[1] :]
 
