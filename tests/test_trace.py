@@ -166,6 +166,19 @@ def helper_multiline_four(  # noqa: E704
 # fmt: on
 
 
+def helper_multiline_five(a="a"):
+    helper_multiline_five.a = a
+
+
+class HelperMultilineObject:
+    """Blah Blah"""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.a = "a"
+
+
 def test_trace__multiline():
     """Test `set_trace` handles a multiline definition."""
     for funcs, lineno in [
@@ -175,7 +188,13 @@ def test_trace__multiline():
         (func_one_liner, 154),
         (helper_multiline_three, 159),
         (helper_multiline_four, 164),
+        (helper_multiline_five, 170),
     ]:
         set_trace(funcs, trace_func)
         with pytest.warns(UserWarning, match=f"^{funcs.__name__}:{lineno}$"):
             funcs()
+
+    for class_, lineno in [(HelperMultilineObject, 177)]:
+        set_trace(class_.__init__, trace_func)
+        with pytest.warns(UserWarning, match=f"^__init__:{lineno}$"):
+            class_()

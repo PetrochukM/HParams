@@ -43,7 +43,7 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
 
     # Remove extra indentation
     init_indent = len(lines[0]) - len(lines[0].lstrip())
-    lines = [l[init_indent:] for l in lines]
+    lines = [l[init_indent:] if len(l.strip()) > 0 else l for l in lines]
 
     # Get first line and col index of body
     tokens = list(tokenize.generate_tokens(io.StringIO("".join(lines)).readline))
@@ -69,7 +69,9 @@ def _make_code(fn: typing.Callable, trace_fn_name: str) -> types.CodeType:
     line = lines[offset]
     lines[offset] = line[: tokens[idx].start[1]] + insert + line[tokens[idx].start[1] :]
 
-    code = f"""
+    is_closure = len(fn.__code__.co_freevars) != 0
+    if is_closure:
+        code = f"""
 def {_closure_fn_name}():
 {" ".join([f"    {var} = None;" for var in fn.__code__.co_freevars])}
 
@@ -77,12 +79,15 @@ def {_closure_fn_name}():
 
     return {fn.__name__}
 """
+    else:
+        code = "".join(lines)
     module = fn.__globals__.copy()
     try:
         exec(code, module)
     except SyntaxError:
         raise SyntaxError("Unable to add `___trace` to function definition.")
-    new: typing.Callable = _unwrap(module[_closure_fn_name]())
+    new: typing.Callable = module[_closure_fn_name]() if is_closure else module[fn.__name__]
+    new = _unwrap(new)
 
     return types.CodeType(
         fn.__code__.co_argcount,
