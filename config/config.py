@@ -401,7 +401,12 @@ def add(config: Config, overwrite: bool = False):
     _update_trace_globals()
 
 
-def partial(func: ConfigKey, *args, **kwargs) -> functools.partial:
+_PartialReturnType = typing.TypeVar("_PartialReturnType")
+
+
+def partial(
+    func: typing.Callable[..., _PartialReturnType], *args, **kwargs
+) -> typing.Callable[..., _PartialReturnType]:
     """Get a `partial` for `func` using the global configuration."""
     key = _unwrap(func)
     if key not in _config:
