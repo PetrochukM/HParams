@@ -381,12 +381,34 @@ def add(config: Config, overwrite: bool = False):
     _update_trace_globals()
 
 
-def partial(func: ConfigKey, *args, **kwargs) -> ConfigKey:
+def partial(func: ConfigKey, *args, **kwargs) -> functools.partial:
     """Get a `partial` for `func` using the global configuration."""
     key = _unwrap(func)
     if key not in _config:
         raise KeyError(f"`{key.__qualname__}` has not been configured.")
     return functools.partial(func, *args, **kwargs, **_config[key])
+
+
+_different_arguments_message = "with different arguments than those that were"
+
+_CallReturnType = typing.TypeVar("_CallReturnType")
+
+
+def call(
+    func: typing.Callable[..., _CallReturnType],
+    *args,
+    overwrite: bool = False,
+    **kwargs,
+) -> _CallReturnType:
+    """Call `func` with it's configured args."""
+    with warnings.catch_warnings():
+        if overwrite:
+            warnings.filterwarnings(
+                "ignore",
+                module=r".*config.*",
+                message=f".*{_different_arguments_message}*",
+            )
+        return partial(func)(*args, **kwargs)
 
 
 def parse_cli_args(args: typing.List[str]) -> Config:
@@ -533,7 +555,7 @@ def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: n
     if not is_matching:
         traceback_ = "".join(traceback.format_stack(f=frame, limit=limit))
         message = (
-            f"Function `{to_str(func)}` with different arguments than those that were "
+            f"Function `{to_str(func)}` {_different_arguments_message} "
             f"configured.\n\nTraceback\n{traceback_}"
         )
         _call_once(warnings.warn, message)

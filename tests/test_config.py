@@ -8,6 +8,7 @@ from config.config import (
     Args,
     _get_func_and_arg,
     add,
+    call,
     enable_fast_trace,
     export,
     get,
@@ -425,6 +426,20 @@ def test_config__var_kwargs():
     message = "^Function `tests.test_config._func` with different arguments"
     with pytest.warns(UserWarning, match=message):
         assert _func() == (tuple(), {})
+
+
+def test_config__different_args():
+    """Test `config` reports different args and ignores them."""
+    add({_func: Args(b=1)})
+    with pytest.warns(UserWarning, match="with different arguments"):
+        assert _func() == (tuple(), {})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert call(_func, b=2, overwrite=True) == (tuple(), {"b": 2})
+
+    with pytest.warns(UserWarning, match="with different arguments"):
+        assert call(_func, b=2, overwrite=False) == (tuple(), {"b": 2})
 
 
 def test_config__merge_configs():

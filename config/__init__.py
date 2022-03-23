@@ -2,6 +2,7 @@ from config.config import (
     Args,
     Config,
     add,
+    call,
     enable_fast_trace,
     export,
     get,
@@ -17,6 +18,7 @@ __all__ = [
     "Args",
     "Config",
     "add",
+    "call",
     "enable_fast_trace",
     "export",
     "get",
@@ -27,4 +29,4 @@ __all__ = [
     "purge",
     "to_str",
 ]
-__version__ = "0.5.6"
+__version__ = "0.5.8"
