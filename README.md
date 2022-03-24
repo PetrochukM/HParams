@@ -25,7 +25,6 @@ of code.
     - [Logging the configuration](#logging-the-configuration)
     - [Advanced: Sharing configurations between processes](#advanced-sharing-configurations-between-processes)
     - [Advanced: Ensuring the configuration is used](#advanced-ensuring-the-configuration-is-used)
-  - [How does this work?](#how-does-this-work)
 
 ## Install
 
@@ -178,11 +177,3 @@ We also have another option for faster tracing with `config.enable_fast_trace`. 
 wide trace, this traces the configured functions by modifying their code and inserting a trace
 function at the beginning of the function definition. This has a MUCH lower overhead; however, it is
 still in beta due to the number of edge cases.
-
-## How does this work?
-
-Our approach is simple, `config` maintains a global configuration mapping each function to its
-associated arguments. When a user calls `config.get`, it'll attempt to parse the code to determine
-the calling function and associated argument. In most cases, this will be successful and it will
-fetch the appropriate value. If it's not successful, it'll `raise` an error that'll help you fix
-the issue.
