@@ -174,9 +174,10 @@ configured()  # `cf.trace` issues a WARNING!
 configured(a=cf.get())
 ```
 
-We also have another option for faster tracing with `enable_fast_trace`. Instead of a system wide
-trace, this will inject new code into the `__code__` of every function in your configuration for
-tracing. This has much lower overhead; however, it is still in beta due to the number of edge cases.
+We also have another option for faster tracing with `config.enable_fast_trace`. Instead of a system
+wide trace, this traces the configured functions by modifying their code and inserting a trace
+function at the beginning of the function definition. This has a MUCH lower overhead; however, it is
+still in beta due to the number of edge cases.
 
 ## How does this work?
 
