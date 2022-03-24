@@ -48,17 +48,17 @@ pip install git+https://github.com/PetrochukM/Config.git
 Any function can be configured, and then used anywhere, see below:
 
 ```python
-import config
+import config as cf
 
 # Define function
 def do_something_cool(how_many_times: int):
     pass
 
 # Configure function
-config.add({do_something_cool: config.Args(how_many_times=5)})
+cf.add({do_something_cool: cf.Args(how_many_times=5)})
 
 # Use the configured function anywhere! 🎉
-do_something_cool(how_many_times=config.get())
+do_something_cool(how_many_times=cf.get())
 ```
 
 This approach is simple but powerful. Now, each configuration can be directly attributed to a
@@ -71,27 +71,27 @@ Furthermore, `config` incorporates `typeguard` 💂‍♀️ so every configurat
 The simple example above can be extended to create a configuration file, for example:
 
 ```python
-import config
+import config as cf
 import data
 import train
 
-config.add({
-  data.get_data: config.Args(
+cf.add({
+  data.get_data: cf.Args(
       train_data_path="url_lists/all_train.txt",
       val_data_path="url_lists/all_val.txt"
   ),
-  data.dataset_reader: config.Args(
+  data.dataset_reader: cf.Args(
       type_="cnn_dm",
       source_max_tokens=1022,
       target_max_tokens=54,
   ),
-  train.make_model: config.Args(type_="bart"),
-  train.Trainer.make_optimizer: config.Args(
+  train.make_model: cf.Args(type_="bart"),
+  train.Trainer.make_optimizer: cf.Args(
       type_="huggingface_adamw",
       lr=3e-5,
       correct_bias=True
   )
-  train.Trainer.__init__: config.Args(
+  train.Trainer.__init__: cf.Args(
       num_epochs=3,
       learning_rate_scheduler="polynomial_decay",
       grad_norm=1.0,
@@ -116,9 +116,9 @@ python example.py --sorted='Args(reverse=True)'
 
 ```python
 import sys
-import config
+import config as cf
 
-config.add(config.parse_cli_args(sys.argv[1:]))
+cf.add(cf.parse_cli_args(sys.argv[1:]))
 ```
 
 ### Logging the configuration
@@ -129,10 +129,10 @@ via `config.log`. In the example below, we log the configuration to
 
 ```python
 from comet_ml import Experiment
-import config
+import config as cf
 
 experiment = Experiment()
-experiment.log_parameters(config.log())
+experiment.log_parameters(cf.log())
 ```
 
 ### Advanced: Sharing configurations between processes
@@ -143,13 +143,13 @@ below:
 
 ```python
 from multiprocessing import Process
-import config
+import config as cf
 
-def handler(configs: config.Config):
-    config.add(configs)
+def handler(configs: cf.Config):
+    cf.add(configs)
 
 if __name__ == "__main__":
-    process = Process(target=handler, args=(config.export(),))
+    process = Process(target=handler, args=(cf.export(),))
     process.start()
     process.join()
 ```
@@ -162,16 +162,16 @@ against the configuration, see below:
 
 ```python
 import sys
-import config
+import config as cf
 
 def configured(a=111):
     pass
 
-sys.settrace(config.trace)
-config.add({configured: config.Args(a=1)})
+sys.settrace(cf.trace)
+cf.add({configured: cf.Args(a=1)})
 
-configured()  # `config.trace` issues a WARNING!
-configured(a=config.get())
+configured()  # `cf.trace` issues a WARNING!
+configured(a=cf.get())
 ```
 
 We also have another option for faster tracing with `enable_fast_trace`. Instead of a system wide
