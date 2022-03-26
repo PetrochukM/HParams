@@ -243,16 +243,18 @@ def test_config__export():
 
 
 def test_config__forward_ref():
-    """Test `config` can handle another global space where an object may not be defined.
-
-    TODO: Test scenario where `get_type_hints` returns a `ForwardRef` triggering an error with
-    `check_type`.
-    """
+    """Test `config` can handle another global space where an object may not be defined."""
 
     def _typed_func(a: typing.ForwardRef("AnotherObj")):  # noqa: F821
         return a
 
     with pytest.warns(SkipTypeCheck, match=_typed_func.__qualname__):
+        add({_typed_func: Args(a="str")})
+
+    def _typed_func(a: "typing.ForwardRef('AnotherObj')"):  # noqa: F821
+        return a
+
+    with pytest.warns(SkipTypeCheck, match="`a`"):
         add({_typed_func: Args(a="str")})
 
 

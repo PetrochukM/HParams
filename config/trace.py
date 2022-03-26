@@ -32,8 +32,7 @@ def _unwrap(func: typing.Callable):
 
 def _get_trace_fn_name(fn):
     """Get a unique tracing function name per function."""
-    name = fn.__qualname__.replace(".", "_").replace("<", "_").replace(">", "_")
-    return f"___trace_{name}"
+    return f"___trace_{id(fn)}"
 
 
 def _indent_len(line: str):
