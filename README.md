@@ -25,6 +25,7 @@ of code.
     - [Logging the configuration](#logging-the-configuration)
     - [Advanced: Sharing configurations between processes](#advanced-sharing-configurations-between-processes)
     - [Advanced: Ensuring the configuration is used](#advanced-ensuring-the-configuration-is-used)
+    - [Advanced: Find unused configurations](#advanced-find-unused-configurations)
 
 ## Install
 
@@ -177,3 +178,15 @@ We also have another option for faster tracing with `config.enable_fast_trace`. 
 wide trace, this traces the configured functions by modifying their code and inserting a trace
 function at the beginning of the function definition. This has a MUCH lower overhead; however, it is
 still in beta due to the number of edge cases.
+
+### Advanced: Find unused configurations
+
+In a large code base, you may have a lot of configurations, some of which are no longer being used.
+`purge` can be run on a process exit, and it'll warn you if configurations were not used.
+
+```python
+import atexit
+import config as cf
+
+atexit.register(cf.purge)
+```

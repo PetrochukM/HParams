@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import atexit
 import builtins
 import collections
 import functools
@@ -282,9 +281,6 @@ def purge():
     _code_to_func = {}
     _call_once.cache_clear()
     _count = defaultdict(lambda: defaultdict(int))
-
-
-atexit.register(purge)
 
 
 def export() -> Config:
