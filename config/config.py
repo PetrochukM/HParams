@@ -53,6 +53,8 @@ _get_func_and_arg_cache: dict[
     tuple[ConfigKey, str],
 ] = {}
 _fast_trace_enabled: bool = False
+# NOTE: These names are unique so they don't interfere with existing attributes.
+_orginal_key = "___orginal_key"
 
 
 class KeyErrorMessage(str):
@@ -285,7 +287,7 @@ def export() -> Config:
 
     NOTE: It would be an anti-pattern to use this for configuring functions.
     """
-    return {k: v.copy() for k, v in _config.items()}
+    return {getattr(k, _orginal_key): v.copy() for k, v in _config.items()}
 
 
 def _check_args(func: ConfigKey, args: ConfigValue):
@@ -384,8 +386,9 @@ def add(config: Config, overwrite: bool = False):
 
     [_check_args(func, args) for func, args in config.items()]
 
-    for key, value in config.items():
-        key = _unwrap(key)
+    for key_, value in config.items():
+        key = _unwrap(key_)
+        setattr(key, _orginal_key, key_)
         _get_funcs(key)  # NOTE: Check `key` before adding it
         if key in _config:
             update = Args({**_config[key], **value})

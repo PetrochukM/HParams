@@ -1,4 +1,5 @@
 import functools
+import pickle
 import sys
 import warnings
 
@@ -226,6 +227,12 @@ def test_config():
     assert export() == {}
     with pytest.raises(KeyError):
         enumerate(range(3), start=get())
+
+
+def test_config__export():
+    """Test `config` pickle the exported config."""
+    add({_dec_func: Args(start=1)})
+    pickle.dumps(export())
 
 
 def test_config__cache():
