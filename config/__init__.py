@@ -3,6 +3,7 @@ from config.config import (
     Config,
     DiffArgsWarning,
     NoFastTraceWarning,
+    SkipTypeCheck,
     UnusedConfigsWarning,
     add,
     call,
@@ -23,6 +24,7 @@ __all__ = [
     "DiffArgsWarning",
     "NoFastTraceWarning",
     "UnusedConfigsWarning",
+    "SkipTypeCheck",
     "add",
     "call",
     "enable_fast_trace",
@@ -35,4 +37,4 @@ __all__ = [
     "purge",
     "to_str",
 ]
-__version__ = "0.6.6"
+__version__ = "0.6.7"

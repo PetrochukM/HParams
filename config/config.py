@@ -42,6 +42,10 @@ class NoFastTraceWarning(UserWarning):
     pass
 
 
+class SkipTypeCheck(UserWarning):
+    pass
+
+
 ConfigValue = Args
 ConfigKey = collections.abc.Callable
 Config = typing.Dict[ConfigKey, ConfigValue]
@@ -294,19 +298,36 @@ def export() -> Config:
     }
 
 
-def _check_args(func: ConfigKey, args: ConfigValue):
-    """Ensure every argument in `args` exists in `func`."""
-    parameters = inspect.signature(func).parameters
-
+def _type_check_args(
+    func: ConfigKey, args: ConfigValue, parameters: typing.Dict[str, inspect.Parameter]
+):
     # NOTE: Check the `args` type corresponds with the function signature.
     frame = sys._getframe(1)
     while frame.f_code.co_filename == __file__:
         frame = frame.f_back
     context = dict(globals=frame.f_globals, locals=frame.f_locals)
-    type_hints = get_type_hints(func)
+
+    try:
+        type_hints = get_type_hints(func)
+    except NameError as e:
+        warnings.warn(
+            f"Skipping type check for `{func.__qualname__}` due to:\n{str(e)}", SkipTypeCheck
+        )
+        return
+
     for key, value in args.items():
         if key in parameters and key in type_hints:
-            check_type(key, value, type_hints[key], **context)
+            try:
+                check_type(key, value, type_hints[key], **context)
+            except NameError as e:
+                warnings.warn(f"Skipping type check for `{key}` due to:\n{str(e)}", SkipTypeCheck)
+
+
+def _check_args(func: ConfigKey, args: ConfigValue):
+    """Ensure every argument in `args` exists in `func`."""
+    parameters = inspect.signature(func).parameters
+
+    _type_check_args(func, args, parameters)
 
     # NOTE: Check `args` exist in the function signature.
     if any(p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD) for p in parameters.values()):

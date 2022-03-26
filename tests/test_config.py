@@ -1,6 +1,7 @@
 import functools
 import pickle
 import sys
+import typing
 import warnings
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from config.config import (
     Args,
     DiffArgsWarning,
+    SkipTypeCheck,
     UnusedConfigsWarning,
     _diff_args_message,
     _get_func_and_arg,
@@ -238,6 +240,20 @@ def test_config__export():
     with pytest.warns(UnusedConfigsWarning):
         purge()
     assert not hasattr(_dec_func.__wrapped__, _orginal_key)
+
+
+def test_config__forward_ref():
+    """Test `config` can handle another global space where an object may not be defined.
+
+    TODO: Test scenario where `get_type_hints` returns a `ForwardRef` triggering an error with
+    `check_type`.
+    """
+
+    def _typed_func(a: typing.ForwardRef("AnotherObj")):  # noqa: F821
+        return a
+
+    with pytest.warns(SkipTypeCheck, match=_typed_func.__qualname__):
+        add({_typed_func: Args(a="str")})
 
 
 def test_config__cache():
