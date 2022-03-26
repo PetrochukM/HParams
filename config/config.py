@@ -273,6 +273,7 @@ def purge():
         warnings.warn(message, UnusedConfigsWarning)
 
     [unset_trace(f) for f, _ in _get_funcs_to_trace(_config)]
+    [delattr(k, _orginal_key) for k in _config.keys() if hasattr(k, _orginal_key)]
     _config = {}
     _code_to_func = {}
     _call_once.cache_clear()
@@ -287,7 +288,10 @@ def export() -> Config:
 
     NOTE: It would be an anti-pattern to use this for configuring functions.
     """
-    return {getattr(k, _orginal_key): v.copy() for k, v in _config.items()}
+    return {
+        getattr(k, _orginal_key) if hasattr(k, _orginal_key) else k: v.copy()
+        for k, v in _config.items()
+    }
 
 
 def _check_args(func: ConfigKey, args: ConfigValue):
@@ -388,7 +392,8 @@ def add(config: Config, overwrite: bool = False):
 
     for key_, value in config.items():
         key = _unwrap(key_)
-        setattr(key, _orginal_key, key_)
+        if not _is_builtin(key):
+            setattr(key, _orginal_key, key_)
         _get_funcs(key)  # NOTE: Check `key` before adding it
         if key in _config:
             update = Args({**_config[key], **value})

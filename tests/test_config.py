@@ -11,6 +11,7 @@ from config.config import (
     UnusedConfigsWarning,
     _diff_args_message,
     _get_func_and_arg,
+    _orginal_key,
     add,
     call,
     enable_fast_trace,
@@ -231,8 +232,12 @@ def test_config():
 
 def test_config__export():
     """Test `config` pickle the exported config."""
-    add({_dec_func: Args(start=1)})
+    add({_dec_func: Args(start=1), enumerate: Args(start=1)})
+    assert hasattr(_dec_func.__wrapped__, _orginal_key)
     pickle.dumps(export())
+    with pytest.warns(UnusedConfigsWarning):
+        purge()
+    assert not hasattr(_dec_func.__wrapped__, _orginal_key)
 
 
 def test_config__cache():
