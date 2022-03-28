@@ -549,9 +549,9 @@ def to_str(func: ConfigKey):
         return "#" + func.__qualname__
 
 
-def log() -> typing.Dict[str, str]:
+def log(repr_: typing.Callable[[str], str] = repr) -> typing.Dict[str, str]:
     """Get a loggable flat dictionary of the configuration."""
-    return {f"{to_str(f)}.{k}": repr(v) for f, a in _config.items() for k, v in a.items()}
+    return {f"{to_str(f)}.{k}": repr_(v) for f, a in _config.items() for k, v in a.items()}
 
 
 _CallOnceReturnType = typing.TypeVar("_CallOnceReturnType")
