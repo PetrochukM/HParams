@@ -384,7 +384,7 @@ def test_config__decorators():
     result = _dec_other_func(**get())
     assert result == (tuple(), {"b": 5})
 
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_dec_other_func)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_dec_other_func, "b")):
         assert _dec_other_func(b=6) == (tuple(), {"b": 6})
 
     assert partial(_dec_other_func)() == (tuple(), {"b": 5})
@@ -401,7 +401,7 @@ def test_config__dec_class():
     obj = DecObj(**get())
     assert obj.results == (tuple(), {"a": 1})
     assert partial(DecObj)().results == (tuple(), {"a": 1})
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(DecObj)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(DecObj, "a")):
         assert DecObj(a=2).results == (tuple(), {"a": 2})
 
 
@@ -411,7 +411,7 @@ def test_config__new_class():
     obj = NewObj(**get())
     assert obj.results == (tuple(), {"a": 1, "k": 2})
     assert partial(NewObj)().results == (tuple(), {"a": 1, "k": 2})
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(NewObj)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(NewObj, "a")):
         assert NewObj(a=3).results == (tuple(), {"a": 3})
 
 
@@ -443,21 +443,21 @@ def test_config__var_kwargs():
     """Test `config` can handle if the configured argument isn't passed into a variable key word
     parameter."""
     add({_func: Args(b=1)})
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func, "b")):
         assert _func() == (tuple(), {})
 
 
 def test_config__different_args():
     """Test `config` reports different args and ignores them."""
     add({_func: Args(b=1)})
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func, "b")):
         assert _func() == (tuple(), {})
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         assert call(_func, b=2, _overwrite=True) == (tuple(), {"b": 2})
 
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func)):
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(_func, "b")):
         assert call(_func, b=2, _overwrite=False) == (tuple(), {"b": 2})
 
 
@@ -480,7 +480,7 @@ def test_config__call_inner():
         assert func(2, 3) == (2, 3)
         assert len(record) == 2
 
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(func)) as record:
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(func, "a")) as record:
         assert func(2, 2) == (2, 2)
         assert len(record) == 1
 
@@ -488,7 +488,7 @@ def test_config__call_inner():
         warnings.simplefilter("error")
         assert call(func, a=2, b=2, _overwrite=True) == (2, 2)
 
-    with pytest.warns(DiffArgsWarning, match=_diff_args_message(inner)) as record:
+    with pytest.warns(DiffArgsWarning, match=_diff_args_message(inner, "b")) as record:
         assert call(func, a=2, b=3, _overwrite=True) == (2, 3)
 
 

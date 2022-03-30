@@ -439,8 +439,10 @@ def partial(
     return functools.partial(func, *args, **kwargs, **_config[key])
 
 
-def _diff_args_message(func: typing.Callable):
-    return f"Function `{to_str(func)}` with different arguments than those that were configured."
+def _diff_args_message(func: typing.Callable, arg: str):
+    # TODO: Should this be incorperated into the definition of `DiffArgsWarning`?
+    name = f"{to_str(func)}#{arg}"
+    return f"Argument `{name}` with different arguments than those that were configured."
 
 
 _CallReturnType = typing.TypeVar("_CallReturnType")
@@ -461,9 +463,8 @@ def call(
     """
     with warnings.catch_warnings():
         if _overwrite:
-            warnings.filterwarnings(
-                "ignore", category=DiffArgsWarning, message=f".*{_diff_args_message(func)}*"
-            )
+            message = f".*{to_str(func)}.*"
+            warnings.filterwarnings("ignore", category=DiffArgsWarning, message=message)
         return partial(func)(*args, **kwargs)
 
 
@@ -574,6 +575,12 @@ def _get_var_keyword(func: typing.Callable, co_name: str) -> typing.Optional[str
     return next((k for k, v in params.items() if v.kind == inspect.Parameter.VAR_KEYWORD), None)
 
 
+def _diff_args_warn(func: typing.Callable, arg: str, frame: types.FrameType, limit: int = 5):
+    traceback_ = "".join(traceback.format_stack(f=frame, limit=limit))
+    message = f"{_diff_args_message(func, arg)}\n\nTraceback\n{traceback_}"
+    _call_once(warnings.warn, message, DiffArgsWarning)
+
+
 def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: no cover
     """Warn the user if a function is run without it's configured arguments.
 
@@ -601,16 +608,20 @@ def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: n
     f_locals = frame.f_locals
     var = _get_var_keyword(func, frame.f_code.co_name)
     if var is None:
-        is_matching = all(f_locals[k] is v for k, v in items)
-    else:
-        kwargs = f_locals[var]
-        is_matching = all(
-            (kwargs[k] is v) if k in kwargs else (f_locals[k] is v if k in f_locals else False)
-            for k, v in items
-        )
-    if not is_matching:
-        traceback_ = "".join(traceback.format_stack(f=frame, limit=limit))
-        message = f"{_diff_args_message(func)}\n\nTraceback\n{traceback_}"
-        _call_once(warnings.warn, message, DiffArgsWarning)
+        for key, value in items:
+            if f_locals[key] is not value:
+                _diff_args_warn(func, key, frame, limit)
+        return
+
+    kwargs = f_locals[var]
+    for key, value in items:
+        if key in kwargs:
+            if kwargs[key] is not value:
+                _diff_args_warn(func, key, frame, limit)
+        elif key in f_locals:
+            if f_locals[key] is not value:
+                _diff_args_warn(func, key, frame, limit)
+        else:
+            _diff_args_warn(func, key, frame, limit)
 
     return trace
