@@ -395,6 +395,17 @@ def _update_trace_globals():
     _call_once.cache_clear()
 
 
+def _is_equal(a: typing.Any, b: typing.Any):
+    """Generic function for testing equality that can handle various implementations of `__eq__`."""
+    if a is b:
+        return True
+
+    try:
+        return a == b
+    except Exception:
+        return False
+
+
 def add(config: Config, overwrite: bool = False):
     """Add to the global configuration.
 
@@ -416,7 +427,7 @@ def add(config: Config, overwrite: bool = False):
             update = Args({**_config[key], **value})
             if not overwrite and len(update) != len(_config[key]) + len(value):
                 for arg, val in _config[key].items():
-                    if update[arg] is not val:
+                    if not _is_equal(update[arg], val):
                         message = f"Trying to overwrite `{key.__qualname__}#{arg}` configuration."
                         raise ValueError(message)
             _config[key] = update
@@ -609,17 +620,17 @@ def trace(frame: types.FrameType, event: str, arg, limit: int = 5):  # pragma: n
     var = _get_var_keyword(func, frame.f_code.co_name)
     if var is None:
         for key, value in items:
-            if f_locals[key] is not value:
+            if not _is_equal(f_locals[key], value):
                 _diff_args_warn(func, key, frame, limit)
         return
 
     kwargs = f_locals[var]
     for key, value in items:
         if key in kwargs:
-            if kwargs[key] is not value:
+            if not _is_equal(kwargs[key], value):
                 _diff_args_warn(func, key, frame, limit)
         elif key in f_locals:
-            if f_locals[key] is not value:
+            if not _is_equal(f_locals[key], value):
                 _diff_args_warn(func, key, frame, limit)
         else:
             _diff_args_warn(func, key, frame, limit)

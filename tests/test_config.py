@@ -461,6 +461,21 @@ def test_config__different_args():
         assert call(_func, b=2, _overwrite=False) == (tuple(), {"b": 2})
 
 
+def test_config__different_args__large_numbers():
+    """Test `config` handles large numbers that are the same."""
+    num = 1000000000000000000000024
+    other_num = int("1000000000000000000000024")
+    assert id(num) != id(other_num)
+    assert num is not other_num
+    assert num == other_num
+
+    add({_func: Args(b=num)})
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert _func(b=other_num) == (tuple(), {"b": other_num})
+
+
 def test_config__call_inner():
     """Test `config` silences the correct error."""
 
