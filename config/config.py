@@ -395,13 +395,13 @@ def _update_trace_globals():
     _call_once.cache_clear()
 
 
-def _is_equal(a: typing.Any, b: typing.Any):
+def _is_equal(a: typing.Any, b: typing.Any) -> bool:
     """Generic function for testing equality that can handle various implementations of `__eq__`."""
     if a is b:
         return True
 
     try:
-        return a == b
+        return bool(a == b)
     except Exception:
         return False
 
