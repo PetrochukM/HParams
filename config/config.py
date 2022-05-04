@@ -305,7 +305,7 @@ def _type_check_args(
 
     try:
         type_hints = get_type_hints(func)
-    except NameError as e:
+    except (NameError, ModuleNotFoundError) as e:
         warnings.warn(
             f"Skipping type check for `{func.__qualname__}` due to:\n{str(e)}", SkipTypeCheck
         )
@@ -315,7 +315,7 @@ def _type_check_args(
         if key in parameters and key in type_hints:
             try:
                 check_type(key, value, type_hints[key], **context)
-            except NameError as e:
+            except (NameError, ModuleNotFoundError) as e:
                 warnings.warn(f"Skipping type check for `{key}` due to:\n{str(e)}", SkipTypeCheck)
 
 
