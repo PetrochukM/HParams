@@ -18,7 +18,7 @@ from types import CodeType
 from typing import get_type_hints
 
 import executing
-from typeguard import check_type
+from typeguard import TypeCheckError, check_type
 
 from config.trace import _unwrap, set_trace, unset_trace
 
@@ -301,7 +301,6 @@ def _type_check_args(
     frame = sys._getframe(1)
     while frame.f_code.co_filename == __file__:
         frame = frame.f_back
-    context = dict(globals=frame.f_globals, locals=frame.f_locals)
 
     try:
         type_hints = get_type_hints(func)
@@ -314,9 +313,11 @@ def _type_check_args(
     for key, value in args.items():
         if key in parameters and key in type_hints:
             try:
-                check_type(key, value, type_hints[key], **context)
+                check_type(value, type_hints[key])
             except (NameError, ModuleNotFoundError) as e:
                 warnings.warn(f"Skipping type check for `{key}` due to:\n{str(e)}", SkipTypeCheck)
+            except TypeCheckError:
+                raise TypeError(f"`{key}` is not instance of `{type_hints[key]}`")
 
 
 def _check_args(func: ConfigKey, args: ConfigValue):
