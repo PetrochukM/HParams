@@ -85,7 +85,6 @@ class Obj:
 
 
 class OtherObj(Obj):
-
     static_obj = Obj()
 
     def __init__(self, *a, **k):
@@ -254,7 +253,7 @@ def test_config__forward_ref():
     def _typed_func(a: "typing.ForwardRef('AnotherObj')"):  # noqa: F821
         return a
 
-    with pytest.warns(SkipTypeCheck, match="`a`"):
+    with pytest.warns(SkipTypeCheck, match="AnotherObj"):
         add({_typed_func: Args(a="str")})
 
 
