@@ -37,7 +37,7 @@ setup_info = dict(
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
-    install_requires=["typeguard", "executing"],
+    install_requires=["typeguard"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",

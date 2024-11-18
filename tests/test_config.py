@@ -12,7 +12,6 @@ from config.config import (
     SkipTypeCheck,
     UnusedConfigsWarning,
     _diff_args_message,
-    _get_func_and_arg,
     _orginal_key,
     add,
     call,
@@ -111,124 +110,18 @@ class NoInitObj(Obj):
     pass
 
 
-def test__get_func_and_arg():
-    """Test `_get_func_and_arg` can handle the basic case."""
-    result = _func(a=_get_func_and_arg())
-    assert result == (tuple(), {"a": (_func, "a")})
-
-
-def test__get_func_and_arg__class_init():
-    """Test `_get_func_and_arg` can handle a class instantiation."""
-    result = Obj(a=_get_func_and_arg()).results
-    assert result == (tuple(), {"a": (Obj, "a")})
-
-
-def test__get_func_and_arg__class_func():
-    """Test `_get_func_and_arg` can handle a class func."""
-    result = Obj().func(a=_get_func_and_arg())
-    assert result == (tuple(), {"a": (Obj.func, "a")})
-
-
-def test__get_func_and_arg__class_attribute():
-    """Test `_get_func_and_arg` can handle instantiated attributes."""
-    with pytest.raises(SyntaxError):
-        OtherObj().obj.new(a=_get_func_and_arg())
-
-
-def test__get_func_and_arg__class_static_attribute():
-    """Test `_get_func_and_arg` can handle static attributes."""
-    result = OtherObj().static_obj.new(a=_get_func_and_arg()).results
-    assert result == (tuple(), {"a": (OtherObj.static_obj.new.__func__, "a")})
-
-
-def test__get_func_and_arg__class_special():
-    """Test `_get_func_and_arg` can handle a special class func."""
-    with pytest.raises(SyntaxError):
-        Obj()(a=_get_func_and_arg())
-
-
-def test__get_func_and_arg__defined_arg():
-    """Test `_get_func_and_arg` can handle if argument name is passed in."""
-    result = _func(_get_func_and_arg("a"))
-    assert result == (((_func, "a"),), {})
-
-
-def test__get_func_and_arg__not_defined_arg():
-    """Test `_get_func_and_arg` can handle when arg isn't defined."""
-    result = _func(_get_func_and_arg())
-    assert result == (((_func, None),), {})
-
-
-def test__get_func_and_arg__defined_func():
-    """Test `_get_func_and_arg` can handle if the function is passed in."""
-    result = (lambda: _func)()(a=_get_func_and_arg(func=_func))
-    assert result == (tuple(), {"a": (_func, "a")})
-
-
-def test__get_func_and_arg__not_defined_func():
-    """Test `_get_func_and_arg` can handle when func isn't defined."""
-    with pytest.raises(SyntaxError):
-        _get_func_and_arg("a")
-
-
-def test__get_func_and_arg__defined_func_and_arg():
-    """Test `_get_func_and_arg` can handle if the function and argument is passed in."""
-    assert _get_func_and_arg("a", _func) == (_func, "a")
-
-
-def test__get_func_and_arg__attributes():
-    """Test `_get_func_and_arg` can parse attributes."""
-    result = _func.attr.bttr(a=_get_func_and_arg())
-    assert result == (tuple(), {"a": (_func.attr.bttr, "a")})
-
-
-def test__get_func_and_arg__anonymous_funcs():
-    """Test `_get_func_and_arg` errors for anonymous functions."""
-    with pytest.raises(SyntaxError):
-        (lambda: _func)()(a=_get_func_and_arg())
-
-    with pytest.raises(SyntaxError):
-        functools.partial(lambda *a, **k: (a, k), a=_get_func_and_arg())
-
-
-def test__get_func_and_arg__partial():
-    """Test `_get_func_and_arg` can resolve partials."""
-    partial = functools.partial(_func, a=_get_func_and_arg())
-    assert partial() == (tuple(), {"a": (_func, "a")})
-
-
-def test__get_func_and_arg__partial_with_attributes():
-    """Test `_get_func_and_arg` can resolve partials with attributes."""
-    partial = functools.partial(_func.attr.bttr, a=_get_func_and_arg())
-    assert partial() == (tuple(), {"a": (_func.attr.bttr, "a")})
-
-
-def test__get_func_and_arg__partial_malformed():
-    """Test `_get_func_and_arg` errors if partial only has keyword args."""
-    with pytest.raises(SyntaxError):
-        functools.partial(a=_get_func_and_arg())
-
-
-def test__get_func_and_arg__builtin():
-    """Test `_get_func_and_arg` errors if partial only has keyword args."""
-    with pytest.raises(SyntaxError):
-        functools.partial(a=_get_func_and_arg())
-
-
 def test_config():
     """Test `config` operations can handle the basic case."""
     config = {enumerate: Args(start=1)}
     assert export() == {}
     add(config)
-    result = list(enumerate(range(3), start=get()))
-    assert result == [(1, 0), (2, 1), (3, 2)]
-    result = list(enumerate(range(3), **get()))
+    result = list(partial(enumerate)(range(3)))
     assert result == [(1, 0), (2, 1), (3, 2)]
     assert export() == config
     purge()
     assert export() == {}
     with pytest.raises(KeyError):
-        enumerate(range(3), start=get())
+        partial(enumerate)(range(3))
 
 
 def test_config__export():
@@ -261,18 +154,20 @@ def test_config__cache():
     """Test `config` operations are cached."""
     add({sorted: Args(reverse=True, key=lambda k: 10 if k == 0 else k)})
     for _ in range(500):
-        result = list(sorted(range(3), reverse=get(), key=get()))
-        assert result == [0, 2, 1]
-        result = list(sorted(range(3), **get()))
+        result = list(partial(sorted)(range(3)))
         assert result == [0, 2, 1]
 
 
 def test_config__repeated():
     """Test `config` operations can handle if a kwarg is already defined."""
-    config = {enumerate: Args(start=1)}
+
+    def func(a):
+        return a
+
+    config = {func: Args(a=1)}
     add(config)
-    with pytest.raises(TypeError):
-        enumerate(range(3), start=2, **get())
+    with pytest.warns(DiffArgsWarning):
+        partial(func)(a=2)
 
 
 def test_config__unused_func():
@@ -286,8 +181,8 @@ def test_config__unused_func():
 def test_config__unused_arg():
     """Test `config.purge` warns if a func argument configuration isn't used."""
     add({sorted: Args(reverse=False, key=None)})
-    sorted([], reverse=get())
-    message = "^These configurations were not used:\nsorted#key$"
+    sorted([])
+    message = "^These configurations were not used:\nsorted#reverse\nsorted#key"
     with pytest.warns(UnusedConfigsWarning, match=message):
         purge()
 
@@ -339,13 +234,13 @@ def test_config__change():
 def test_config__class():
     """Test `config` can handle a class and class functions."""
     add({Obj: Args(a=1), Obj.func: Args(b=2)})
-    obj = Obj(**get())
+    obj = partial(Obj)()
     assert obj.results == (tuple(), {"a": 1})
 
     obj = partial(Obj)()
     assert obj.results == (tuple(), {"a": 1})
 
-    result = obj.func(**get())
+    result = partial(obj.func)()
     assert result == (tuple(), {"b": 2})
 
     result = partial(obj.func)()
@@ -356,7 +251,7 @@ def test_config__class_init():
     """Test `config` errors if unbounded method `__init__` method is used."""
     add({Obj.__init__: Args(a=1)})
     with pytest.raises(KeyError):
-        Obj(**get())
+        partial(Obj)()
 
 
 def test_config__class_no_init():
@@ -368,19 +263,19 @@ def test_config__class_no_init():
 def test_config__decorators():
     """Test `config` unwraps decorators."""
     add({_dec_func: Args(a=1), _dec_other_func: Args(b=2)})
-    result = _dec_func(**get())
+    result = partial(_dec_func)()
     assert result == (tuple(), {"a": 1})
-    result = _dec_other_func(**get())
+    result = partial(_dec_other_func)()
     assert result == (tuple(), {"b": 2})
 
     add({_dec_func.__wrapped__: Args(a=3), _dec_other_func.__wrapped__: Args(b=4)}, overwrite=True)
-    result = _dec_func(**get())
+    result = partial(_dec_func)()
     assert result == (tuple(), {"a": 3})
-    result = _dec_other_func(**get())
+    result = partial(_dec_other_func)()
     assert result == (tuple(), {"b": 4})
 
     add({_dec_other_func.__wrapped__.__wrapped__: Args(b=5)}, overwrite=True)
-    result = _dec_other_func(**get())
+    result = partial(_dec_other_func)()
     assert result == (tuple(), {"b": 5})
 
     with pytest.warns(DiffArgsWarning, match=_diff_args_message(_dec_other_func, "b")):
@@ -390,14 +285,14 @@ def test_config__decorators():
 
     add({Obj.dec_func: Args(c=7)})
     obj = Obj()
-    result = obj.dec_func(**get())
+    result = partial(obj.dec_func)()
     assert result == (tuple(), {"c": 7})
 
 
 def test_config__dec_class():
     """Test `config` can handle decorated class init."""
     add({DecObj: Args(a=1)})
-    obj = DecObj(**get())
+    obj = partial(DecObj)()
     assert obj.results == (tuple(), {"a": 1})
     assert partial(DecObj)().results == (tuple(), {"a": 1})
     with pytest.warns(DiffArgsWarning, match=_diff_args_message(DecObj, "a")):
@@ -407,7 +302,7 @@ def test_config__dec_class():
 def test_config__new_class():
     """Test `config` can handle class with `__new__` implemented."""
     add({NewObj: Args(a=1, k=2)})
-    obj = NewObj(**get())
+    obj = partial(NewObj)()
     assert obj.results == (tuple(), {"a": 1, "k": 2})
     assert partial(NewObj)().results == (tuple(), {"a": 1, "k": 2})
     with pytest.warns(DiffArgsWarning, match=_diff_args_message(NewObj, "a")):
@@ -424,17 +319,17 @@ def test_config__subclass():
     with pytest.raises(ValueError):
         add({DecObj.func: Args(a=3, k=4)})
 
-    results = OtherObj().func(**get())
+    results = partial(OtherObj().func)()
     assert results == (tuple(), {"a": 1, "k": 2})
-    results = DecObj().func(**get())
+    results = partial(DecObj().func)()
     assert results == (tuple(), {"a": 1, "k": 2})
 
     config = {OtherObj.__new__: Args(a=1, k=2), DecObj.__new__: Args(a=3, k=4)}
     assert len(config) == 1  # NOTE: This a really confusing edge case
     add({OtherObj: Args(a=1, k=2), DecObj: Args(a=3, k=4)})
-    results = OtherObj(**get()).results
+    results = partial(OtherObj)().results
     assert results == (tuple(), {"a": 1, "k": 2})
-    results = DecObj(**get()).results
+    results = partial(DecObj)().results
     assert results == (tuple(), {"a": 3, "k": 4})
 
 
@@ -510,13 +405,13 @@ def test_config__merge_configs():
     """Test `config` merges configs correctly."""
     add({Obj: Args(a=1)})
     add({Obj: Args(b=2)})
-    result = get(func=Obj)
+    result = get(Obj)
     assert result == {"a": 1, "b": 2}
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         add({Obj: Args(a=3)}, overwrite=True)
-    result = get(func=Obj)
+    result = get(Obj)
     assert result == {"a": 3, "b": 2}
 
     with warnings.catch_warnings():
@@ -608,7 +503,7 @@ def test_trace():
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        _func(a=get())
+        partial(_func)()
         purge()
         _func()
 
@@ -637,7 +532,7 @@ def test_trace__sys():
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        _func(a=get())
+        partial(_func)()
         purge()
         _func()
 
